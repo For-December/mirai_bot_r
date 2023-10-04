@@ -1,15 +1,21 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{json, to_value, Value};
 use std::collections::HashMap;
-
-pub const BASE_URL: &'static str = "http://127.0.0.1:8087";
-pub const VERIFY_KEY: &'static str = "INITKEY2UnuZcms";
-pub const BOT_QQ: &'static str = "";
+use std::fs::File;
+use std::io::Read;
 
 #[derive(Debug)]
 pub struct MyBot {
     qq: String,
     session_key: String,
+    base_url: String,
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct AppConfig {
+    base_url: String,
+    verify_key: String,
+    bot_qq: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -54,10 +60,28 @@ impl MessageChain {
 
 impl MyBot {
     pub fn new() -> Result<MyBot, Box<dyn std::error::Error>> {
-        let session_key = get_verify()?;
-        let qq = String::from(BOT_QQ);
-        bind_release_verify(&session_key, BOT_QQ, false)?;
-        Ok(MyBot { session_key, qq })
+        Self::from_conf("config.yaml")
+    }
+    pub fn from_conf(file_path: &str) -> Result<MyBot, Box<dyn std::error::Error>> {
+        let mut config_file = File::open(file_path)?;
+        let mut config_yaml = String::new();
+
+        // 读取配置文件内容
+        config_file.read_to_string(&mut config_yaml)?;
+
+        // 解析 YAML 配置文件
+        let config: AppConfig = serde_yaml::from_str(&config_yaml)?;
+        println!("{:?}", config);
+
+        let session_key = Self::get_verify(&config.base_url, &config.verify_key)?;
+        let qq = config.bot_qq;
+        let base_url = config.base_url;
+        Self::bind_release_verify(&base_url, &session_key, &qq, false)?;
+        Ok(MyBot {
+            session_key,
+            qq,
+            base_url,
+        })
     }
 
     fn post_msg(&self, json: String, url: String) -> Result<String, Box<dyn std::error::Error>> {
@@ -92,7 +116,7 @@ impl MyBot {
         let mut map = HashMap::new();
         let count = count.to_string();
         map.insert("count", count.as_str());
-        let res = self.get_msg(map, BASE_URL.to_string() + "/peekLatestMessage")?;
+        let res = self.get_msg(map, self.base_url.to_string() + "/peekLatestMessage")?;
         println!("{}", res);
         Ok(())
     }
@@ -110,8 +134,49 @@ impl MyBot {
         .to_string();
         println!("{}", json);
 
-        self.post_msg(json, BASE_URL.to_string() + "/sendGroupMessage")?;
+        self.post_msg(json, self.base_url.to_string() + "/sendGroupMessage")?;
         Ok(())
+    }
+
+    fn blocking_post_msg(
+        map: HashMap<&str, &str>,
+        url: String,
+    ) -> Result<String, Box<dyn std::error::Error>> {
+        println!("{}", url);
+        let res = reqwest::blocking::Client::new()
+            .post(url)
+            .json(&map)
+            .send()?
+            .text()?;
+        println!("{:#?}", res);
+        Ok(res)
+    }
+
+    fn get_verify(base_url: &str, verify_key: &str) -> Result<String, Box<dyn std::error::Error>> {
+        let mut map = HashMap::new();
+        map.insert("verifyKey", verify_key);
+        let res = Self::blocking_post_msg(map, base_url.to_string() + "/verify")?;
+        let v: Value = serde_json::from_str(&res)?;
+        let res: String = v["session"].to_string().trim_matches('"').to_string();
+        Ok(res)
+    }
+
+    fn bind_release_verify(
+        base_url: &str,
+        session_key: &str,
+        qq: &str,
+        is_release: bool,
+    ) -> Result<String, Box<dyn std::error::Error>> {
+        let mut map = HashMap::new();
+        map.insert("sessionKey", session_key);
+        map.insert("qq", qq);
+        let res = match is_release {
+            true => Self::blocking_post_msg(map, base_url.to_string() + "/release")?,
+            false => Self::blocking_post_msg(map, base_url.to_string() + "/bind")?,
+        };
+        let v: Value = serde_json::from_str(&res)?;
+        let res: String = v["msg"].to_string();
+        Ok(res)
     }
 }
 // 实现 Drop trait
@@ -119,52 +184,13 @@ impl Drop for MyBot {
     fn drop(&mut self) {
         // 在这里执行资源的清理操作，例如关闭文件、释放内存等
         println!("Dropping MyBot...");
-        bind_release_verify(&self.session_key, &self.qq, true).unwrap();
+        Self::bind_release_verify(&self.base_url, &self.session_key, &self.qq, true).unwrap();
 
         // 在 drop 方法中执行异步清理操作
         // tokio::task::spawn_blocking(|| {
         // code async
         // });
     }
-}
-fn blocking_post_msg(
-    map: HashMap<&str, &str>,
-    url: String,
-) -> Result<String, Box<dyn std::error::Error>> {
-    println!("{}", url);
-    let res = reqwest::blocking::Client::new()
-        .post(url)
-        .json(&map)
-        .send()?
-        .text()?;
-    println!("{:#?}", res);
-    Ok(res)
-}
-
-pub fn get_verify() -> Result<String, Box<dyn std::error::Error>> {
-    let mut map = HashMap::new();
-    map.insert("verifyKey", VERIFY_KEY);
-    let res = blocking_post_msg(map, BASE_URL.to_string() + "/verify")?;
-    let v: Value = serde_json::from_str(&res)?;
-    let res: String = v["session"].to_string().trim_matches('"').to_string();
-    Ok(res)
-}
-
-pub fn bind_release_verify(
-    session_key: &str,
-    qq: &str,
-    is_release: bool,
-) -> Result<String, Box<dyn std::error::Error>> {
-    let mut map = HashMap::new();
-    map.insert("sessionKey", session_key);
-    map.insert("qq", qq);
-    let res = match is_release {
-        true => blocking_post_msg(map, BASE_URL.to_string() + "/release")?,
-        false => blocking_post_msg(map, BASE_URL.to_string() + "/bind")?,
-    };
-    let v: Value = serde_json::from_str(&res)?;
-    let res: String = v["msg"].to_string();
-    Ok(res)
 }
 
 #[cfg(test)]
