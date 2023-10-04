@@ -1,14 +1,55 @@
-use serde_json::Value;
+use serde::{Deserialize, Serialize};
+use serde_json::{json, to_value, Value};
 use std::collections::HashMap;
 
 pub const BASE_URL: &'static str = "http://127.0.0.1:8087";
 pub const VERIFY_KEY: &'static str = "INITKEY2UnuZcms";
-pub const BOT_QQ: &'static str = "***REMOVED***";
+pub const BOT_QQ: &'static str = "";
 
 #[derive(Debug)]
 pub struct MyBot {
     qq: String,
     session_key: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct Message {
+    #[serde(rename = "type")]
+    pub _type: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub text: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>,
+}
+
+pub struct MessageChain {
+    message_chain: Vec<Message>,
+}
+impl MessageChain {
+    // 链式调用，所有权转移
+    pub fn new() -> MessageChain {
+        let message_chain: Vec<Message> = Vec::new();
+        return MessageChain { message_chain };
+    }
+    pub fn build_img(mut self, url: String) -> Self {
+        self.message_chain.push(Message {
+            _type: String::from("Image"),
+            text: None,
+            url: Some(url),
+        });
+        self
+    }
+    pub fn build_text(mut self, text: String) -> Self {
+        self.message_chain.push(Message {
+            _type: String::from("Plain"),
+            text: Some(text),
+            url: None,
+        });
+        self
+    }
+    pub fn get_message_chain(&self) -> &Vec<Message> {
+        &self.message_chain
+    }
 }
 
 impl MyBot {
@@ -17,6 +58,60 @@ impl MyBot {
         let qq = String::from(BOT_QQ);
         bind_release_verify(&session_key, BOT_QQ, false)?;
         Ok(MyBot { session_key, qq })
+    }
+
+    fn post_msg(&self, json: String, url: String) -> Result<String, Box<dyn std::error::Error>> {
+        println!("{}", url);
+        let res = reqwest::blocking::Client::new()
+            .post(url)
+            .body(json)
+            .header("sessionKey", &self.session_key)
+            .send()?
+            .text()?;
+        println!("{:#?}", res);
+        Ok(res)
+    }
+    fn get_msg(
+        &self,
+        map: HashMap<&str, &str>,
+        url: String,
+    ) -> Result<String, Box<dyn std::error::Error>> {
+        println!("{}", url);
+        let mut req_builder = reqwest::blocking::Client::new()
+            .get(url)
+            .header("sessionKey", &self.session_key);
+        for ele in map {
+            req_builder = req_builder.query(&[ele]);
+        }
+        let res = req_builder.send()?.text()?;
+        println!("{:#?}", res);
+
+        Ok(res)
+    }
+    pub fn get_events(&self, count: i32) -> Result<(), Box<dyn std::error::Error>> {
+        let mut map = HashMap::new();
+        let count = count.to_string();
+        map.insert("count", count.as_str());
+        let res = self.get_msg(map, BASE_URL.to_string() + "/peekLatestMessage")?;
+        println!("{}", res);
+        Ok(())
+    }
+
+    pub fn send_group_msg(
+        &self,
+        group_num: &str,
+        msg: &MessageChain,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let message_chain: Value = to_value(msg.get_message_chain())?;
+        let json = json!({
+            "target": group_num,
+            "messageChain": message_chain
+        })
+        .to_string();
+        println!("{}", json);
+
+        self.post_msg(json, BASE_URL.to_string() + "/sendGroupMessage")?;
+        Ok(())
     }
 }
 // 实现 Drop trait
@@ -30,14 +125,6 @@ impl Drop for MyBot {
         // tokio::task::spawn_blocking(|| {
         // code async
         // });
-        // let session_key = self.session_key.clone();
-        // let res = tokio::spawn(async move {
-        //     // 所有权转交给该线程，此时self可能已失效
-        //     bind_release_verify(&session_key, BOT_QQ, true)
-        //         .await
-        //         .unwrap();
-        //     println!("dropped!");
-        // });
     }
 }
 fn blocking_post_msg(
@@ -50,22 +137,6 @@ fn blocking_post_msg(
         .json(&map)
         .send()?
         .text()?;
-    println!("{:#?}", res);
-    Ok(res)
-}
-
-async fn post_msg(
-    map: HashMap<&str, &str>,
-    url: String,
-) -> Result<String, Box<dyn std::error::Error>> {
-    println!("{}", url);
-    let res = reqwest::Client::new()
-        .post(url)
-        .json(&map)
-        .send()
-        .await?
-        .text()
-        .await?;
     println!("{:#?}", res);
     Ok(res)
 }
@@ -106,8 +177,7 @@ mod tests {
         map.insert("lang", "rust");
         map.insert("body", "json");
 
-        post_msg(map, String::from("http://httpbin.org/post")).await?;
-        get_verify()?;
+        // _post_msg(map, String::from("http://httpbin.org/post")).await?;
         Ok(())
     }
 
