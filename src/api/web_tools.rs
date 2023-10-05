@@ -18,14 +18,55 @@ struct AppConfig {
     bot_qq: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Default)]
 pub struct Message {
     #[serde(rename = "type")]
-    pub _type: String,
+    pub _type: String, // [Plain, Image, Source]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub text: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub time: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub target: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub display: Option<String>,
+}
+
+enum MessageType {
+    Plain(String),
+    Image(String),
+    Source((String, String)),
+    At(String),
+}
+trait With<T> {
+    fn with(value: T) -> Self;
+}
+impl With<MessageType> for Message {
+    fn with(value: MessageType) -> Self {
+        match value {
+            MessageType::Plain(url) => Message {
+                url: Some(url),
+                ..Default::default()
+            },
+            MessageType::Image(text) => Message {
+                text: Some(text),
+                ..Default::default()
+            },
+            MessageType::Source((id, time)) => Message {
+                id: Some(id),
+                time: Some(time),
+                ..Default::default()
+            },
+            MessageType::At(target) => Message {
+                target: Some(target),
+                ..Default::default()
+            },
+        }
+    }
 }
 
 pub struct MessageChain {
@@ -38,21 +79,23 @@ impl MessageChain {
         return MessageChain { message_chain };
     }
     pub fn build_img(mut self, url: String) -> Self {
-        self.message_chain.push(Message {
-            _type: String::from("Image"),
-            text: None,
-            url: Some(url),
-        });
+        // Message::with(String::from("value"));
+        self.message_chain
+            .push(Message::with(MessageType::Image(url)));
+
         self
     }
     pub fn build_text(mut self, text: String) -> Self {
-        self.message_chain.push(Message {
-            _type: String::from("Plain"),
-            text: Some(text),
-            url: None,
-        });
+        self.message_chain
+            .push(Message::with(MessageType::Plain(text)));
         self
     }
+    pub fn build_at(mut self, target: String) -> Self {
+        self.message_chain
+            .push(Message::with(MessageType::At(target)));
+        self
+    }
+
     pub fn get_message_chain(&self) -> &Vec<Message> {
         &self.message_chain
     }
