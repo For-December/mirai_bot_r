@@ -1,11 +1,14 @@
 use std::time::Duration;
-
 mod api;
-use api::bot::*;
-use api::event::*;
+mod bot;
+mod setup;
+use api::wx_chat::AI;
+use bot::event::*;
+use bot::my_bot::*;
 
-use crate::api::bot_trait::EventHandler;
+use crate::bot::bot_trait::EventHandler;
 
+impl AI for MyBot {}
 pub fn verify_and_bind() -> Result<(), Box<dyn std::error::Error>> {
     let my_bot = MyBot::new()?;
     println!("{:?}", my_bot);

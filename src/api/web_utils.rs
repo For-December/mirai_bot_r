@@ -1,13 +1,11 @@
+use mirai_bot::setup::conf;
 use std::collections::HashMap;
-
-use crate::api::conf::APP_CONF;
 
 pub fn post_msg(
     json: String,
-    api_path: &str,
+    url:String,
     session_key: &str,
 ) -> Result<String, Box<dyn std::error::Error>> {
-    println!("{}", APP_CONF.base_url.clone() + api_path);
     let res = reqwest::blocking::Client::new()
         .post(&(APP_CONF.base_url.clone() + api_path))
         .body(json)

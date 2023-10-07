@@ -1,14 +1,14 @@
-use rand::{thread_rng, Rng};
-use serde_json::{json, to_value, Value};
+use crate::setup::conf::APP_CONF;
 
 use super::{
     bot_trait::{BotAction, EventHandler},
-    conf::APP_CONF,
     event::Event,
     group::GroupSender,
     message::Message,
     message::MessageChain,
 };
+use rand::{thread_rng, Rng};
+use serde_json::{json, to_value, Value};
 use std::collections::HashMap;
 
 #[derive(Debug)]
