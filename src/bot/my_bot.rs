@@ -9,7 +9,7 @@ use super::{
 };
 use rand::{thread_rng, Rng};
 use serde_json::{json, to_value, Value};
-use std::collections::HashMap;
+use std::{collections::HashMap, thread, time::Duration};
 
 #[derive(Debug)]
 pub struct MyBot {
@@ -135,6 +135,7 @@ impl BotAction for MyBot {
 impl AI for MyBot {}
 impl EventHandler for MyBot {
     fn handle_group_event(&self, message_chain: &MessageChain, sender: &GroupSender) {
+        thread::sleep(Duration::from_secs(2));
         let message_chain = message_chain.get_message_chain();
         let mut store_chain: Vec<&Message> = Vec::new();
         for ele in message_chain {
@@ -144,10 +145,16 @@ impl EventHandler for MyBot {
             store_chain.push(ele);
         }
         println!("{:#?}", serde_json::to_string(&store_chain).unwrap());
+        if message_chain.len() == 1 {
+            return;
+        }
 
         if !message_chain[1]._type.eq_ignore_ascii_case("Plain")
             || !message_chain[1].text.as_ref().unwrap().eq("测试3")
         {
+            if message_chain.len() == 2 {
+                return;
+            }
             if message_chain[1]._type.eq("At")
                 && message_chain[1].target.unwrap() == ***REMOVED***
                 && message_chain[2]._type.eq("Plain")
