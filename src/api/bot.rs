@@ -1,147 +1,15 @@
-use serde::{Deserialize, Serialize};
 use serde_json::{json, to_value, Value};
-use std::collections::HashMap;
-use std::f32::consts::E;
-use std::fs::File;
-use std::io::Read;
+
+use super::{
+    conf::AppConfig, event::Event, group::GroupSender, message::Message, message::MessageChain,
+};
+use std::{collections::HashMap, fs::File, io::Read};
 
 #[derive(Debug)]
 pub struct MyBot {
     qq: String,
     session_key: String,
     base_url: String,
-}
-
-#[derive(Debug, serde::Deserialize)]
-struct AppConfig {
-    base_url: String,
-    verify_key: String,
-    bot_qq: String,
-}
-
-#[derive(Serialize, Deserialize, Default, Debug)]
-pub struct Message {
-    #[serde(rename = "type")]
-    pub _type: String, // [Plain, Image, Source]
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub text: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub url: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub id: Option<i64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub time: Option<i64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub target: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub display: Option<String>,
-}
-
-enum MessageType {
-    Plain(String),
-    Image(String),
-    Source((i64, i64)),
-    At(String),
-}
-trait With<T> {
-    fn with(value: T) -> Self;
-}
-impl With<MessageType> for Message {
-    fn with(value: MessageType) -> Self {
-        match value {
-            MessageType::Plain(text) => Message {
-                _type: String::from("Plain"),
-                text: Some(text),
-                ..Default::default()
-            },
-            MessageType::Image(url) => Message {
-                _type: String::from("Image"),
-                url: Some(url),
-                ..Default::default()
-            },
-            MessageType::Source((id, time)) => Message {
-                _type: String::from("Source"),
-                id: Some(id),
-                time: Some(time),
-                ..Default::default()
-            },
-            MessageType::At(target) => Message {
-                _type: String::from("At"),
-                target: Some(target),
-                ..Default::default()
-            },
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct Group {
-    pub id: i64,
-    pub name: String,
-    pub permission: String,
-}
-
-pub struct GroupSender {
-    sender: Value, // messageChain and sender
-}
-impl GroupSender {
-    pub fn new(sender: Value) -> GroupSender {
-        GroupSender { sender }
-    }
-    pub fn get_id(&self) -> String {
-        self.sender["id"].to_string()
-    }
-    pub fn get_member_name(&self) -> String {
-        self.sender["memberName"].to_string()
-    }
-    pub fn get_special_title(&self) -> String {
-        self.sender["specialTitle"].to_string()
-    }
-    pub fn get_group(&self) -> Group {
-        println!("{:#?}", self.sender);
-        let res: Group = serde_json::from_value(self.sender["group"].clone()).unwrap();
-        res
-    }
-}
-
-pub enum Event {
-    GroupEvent((MessageChain, GroupSender)),
-}
-
-#[derive(Debug)]
-pub struct MessageChain {
-    message_chain: Vec<Message>,
-}
-impl MessageChain {
-    // 链式调用，所有权转移
-    pub fn new() -> MessageChain {
-        let message_chain: Vec<Message> = Vec::new();
-        return MessageChain { message_chain };
-    }
-    pub fn from(message_chain: Vec<Message>) -> MessageChain {
-        return MessageChain { message_chain };
-    }
-    pub fn build_img(mut self, url: String) -> Self {
-        // Message::with(String::from("value"));
-        self.message_chain
-            .push(Message::with(MessageType::Image(url)));
-
-        self
-    }
-    pub fn build_text(mut self, text: String) -> Self {
-        self.message_chain
-            .push(Message::with(MessageType::Plain(text)));
-        self
-    }
-    pub fn build_at(mut self, target: String) -> Self {
-        self.message_chain
-            .push(Message::with(MessageType::At(target)));
-        self
-    }
-
-    pub fn get_message_chain(&self) -> &Vec<Message> {
-        &self.message_chain
-    }
 }
 
 impl MyBot {
@@ -197,7 +65,9 @@ impl MyBot {
                 "https://i0.hdslb.com/bfs/album/67fc4e6b417d9c68ef98ba71d5e79505bbad97a1.png",
             ))
             .build_at(String::from(sender.get_id()));
-        self.send_group_msg(&sender.get_group().id.to_string(), &msg);
+        self.send_group_msg(&sender.get_group().id.to_string(), &msg)
+            .expect("200行出错");
+        self.send_group_nudge(sender.get_group().id.to_string(), sender.get_id())
     }
 
     fn post_msg(&self, json: String, url: String) -> Result<String, Box<dyn std::error::Error>> {
@@ -228,6 +98,16 @@ impl MyBot {
 
         Ok(res)
     }
+    pub fn send_group_nudge(&self, subject: String, target: String) {
+        let json = json!({
+            "subject":subject,
+            "target":target,
+            "kind":"Group"
+        })
+        .to_string();
+        self.post_msg(json, self.base_url.to_string() + "/sendNudge")
+            .unwrap();
+    }
     pub fn get_events(&self, count: i32) -> Result<Option<Vec<Event>>, Box<dyn std::error::Error>> {
         let mut map = HashMap::new();
         let count = count.to_string();
@@ -249,6 +129,15 @@ impl MyBot {
                     MessageChain::from(message_chain),
                     GroupSender::new(data["sender"].clone()),
                 )));
+            } else if data["type"].to_string().contains("NudgeEvent") {
+                // println!("事件");
+                res_arr.push(Event::NudgeEvent((
+                    data["fromId"].to_string(),
+                    data["target"].to_string(),
+                    data["subject"].clone(),
+                )))
+            } else {
+                println!("event:: {}", data["type"].to_string());
             }
         }
         return Ok(Some(res_arr));
@@ -326,26 +215,5 @@ impl Drop for MyBot {
         // tokio::task::spawn_blocking(|| {
         // code async
         // });
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn test_post_msg() -> Result<(), Box<dyn std::error::Error>> {
-        let mut map = HashMap::new();
-        map.insert("lang", "rust");
-        map.insert("body", "json");
-
-        // _post_msg(map, String::from("http://httpbin.org/post")).await?;
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn test_verify() -> Result<(), Box<dyn std::error::Error>> {
-        // let res = get_verify().await?;
-        Ok(())
     }
 }
