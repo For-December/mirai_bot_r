@@ -1,4 +1,4 @@
-use crate::setup::conf::APP_CONF;
+use crate::{api::wx_chat::AI, setup::conf::APP_CONF};
 
 use super::{
     bot_trait::{BotAction, EventHandler},
@@ -132,6 +132,7 @@ impl BotAction for MyBot {
         super::api_utils::post_msg(json, "/sendNudge", &self.session_key).unwrap();
     }
 }
+impl AI for MyBot {}
 impl EventHandler for MyBot {
     fn handle_group_event(&self, message_chain: &MessageChain, sender: &GroupSender) {
         let message_chain = message_chain.get_message_chain();
@@ -145,14 +146,22 @@ impl EventHandler for MyBot {
         println!("{:#?}", serde_json::to_string(&store_chain).unwrap());
 
         if !message_chain[1]._type.eq_ignore_ascii_case("Plain")
-            || !message_chain[1]
-                .text
-                .as_ref()
-                .unwrap()
-                .eq_ignore_ascii_case("测试3")
+            || !message_chain[1].text.as_ref().unwrap().eq("测试3")
         {
+            if message_chain[1]._type.eq("At")
+                && message_chain[1].target.unwrap() == ***REMOVED***
+                && message_chain[2]._type.eq("Plain")
+            {
+                let ans = self.process_text(message_chain[2].text.as_ref().unwrap().as_str());
+                let ans = MessageChain::new()
+                    .build_at(sender.get_id())
+                    .build_text(ans);
+                self.send_group_msg(sender.get_group().id.to_string().as_str(), &ans);
+            }
+
             return;
         }
+
         let msg = MessageChain::new()
             .build_text(String::from("你好！"))
             .build_text(String::from("晚上好！"))

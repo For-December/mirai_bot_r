@@ -1,11 +1,19 @@
 use lazy_static::lazy_static;
+use serde::Deserialize;
 use std::{fs::File, io::Read};
 
-#[derive(Debug, serde::Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct AppConfig {
     pub base_url: String,
     pub verify_key: String,
     pub bot_qq: String,
+    pub wx_api: WXApi,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct WXApi {
+    pub api_key: String,
+    pub secret_key: String,
 }
 
 lazy_static! {
