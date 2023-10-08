@@ -21,7 +21,7 @@ impl MyBot {
     pub fn new() -> Result<MyBot, Box<dyn std::error::Error>> {
         let config = &APP_CONF;
 
-        let session_key = Self::get_verify(&config.base_url, &config.verify_key)?;
+        let session_key = Self::get_verify(&config.verify_key)?;
         let qq = config.bot_qq.clone();
         Self::bind_release_verify(&session_key, &qq, false)?;
         Ok(MyBot { session_key, qq })
@@ -65,7 +65,7 @@ impl MyBot {
         // Ok(None)
     }
 
-    fn get_verify(base_url: &str, verify_key: &str) -> Result<String, Box<dyn std::error::Error>> {
+    fn get_verify(verify_key: &str) -> Result<String, Box<dyn std::error::Error>> {
         let json = json!({
             "verifyKey":verify_key,
         })
@@ -119,7 +119,7 @@ impl BotAction for MyBot {
         .to_string();
         println!("{}", json);
 
-        super::api_utils::post_msg(json, "/sendGroupMessage", &self.session_key);
+        super::api_utils::post_msg(json, "/sendGroupMessage", &self.session_key).unwrap();
     }
 
     fn send_group_nudge(&self, subject: String, target: String) {

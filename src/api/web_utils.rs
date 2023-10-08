@@ -1,6 +1,6 @@
 use std::{collections::HashMap, str::FromStr};
 
-use reqwest::header::{HeaderMap, HeaderName, HeaderValue, CONTENT_TYPE, USER_AGENT};
+use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
 
 pub fn post_utils(
     json: String,
