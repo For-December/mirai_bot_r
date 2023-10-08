@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 enum MessageType {
     Plain(String),
     Image(String),
-    Source((i64, i64)),
+    Source((Identity, i64)),
     At(i64),
 }
 
@@ -44,6 +44,12 @@ impl MessageChain {
     }
 }
 
+#[derive(Debug,Serialize,Deserialize)]
+#[serde(untagged)]
+pub enum Identity {
+    Integer(i64),
+    Str(String),
+}
 #[derive(Serialize, Deserialize, Default, Debug)]
 pub struct Message {
     #[serde(rename = "type")]
@@ -53,7 +59,7 @@ pub struct Message {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub url: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub id: Option<i64>,
+    pub id: Option<Identity>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub time: Option<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]
