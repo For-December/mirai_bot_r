@@ -156,7 +156,7 @@ impl EventHandler for MyBot {
                 return;
             }
             if message_chain[1]._type.eq("At")
-                && message_chain[1].target.unwrap() == ***REMOVED***
+                && message_chain[1].target.unwrap().to_string().eq(&self.qq)
                 && message_chain[2]._type.eq("Plain")
             {
                 let ans = self.process_text(message_chain[2].text.as_ref().unwrap().as_str());
@@ -182,7 +182,7 @@ impl EventHandler for MyBot {
 
     fn handle_nudge_event(&self, from_id: &String, target: &String, subject: &Value) {
         println!("事件发生!");
-        if target.eq("***REMOVED***") {
+        if target.eq("3090807650") {
             if thread_rng().gen_range(0..10) < 6 {
                 return;
             }
