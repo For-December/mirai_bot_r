@@ -58,7 +58,10 @@ impl EventHandler for MyBot {
                     }
 
                     // 不是指令，且 at bot 则 AI 回复
-                    let ans = self.process_text(message_chain[2].text.as_ref().unwrap().as_str());
+                    let ans = self
+                        .process_text(message_chain[2].text.as_ref().unwrap().as_str())
+                        .replace("\\n", "\n")
+                        .replace("\\", "");
                     let ans = MessageChain::new()
                         .build_at(sender.get_id())
                         .build_text(ans);
