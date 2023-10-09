@@ -12,7 +12,7 @@ impl GroupAdmin for MyBot {
         .to_string();
         let res = super::api_utils::post_msg(json, "/memberAdmin", &self.session_key).unwrap();
         let res: Value = serde_json::from_str(&res).unwrap();
-        if res["msg"].to_string().eq("success") {
+        if res["msg"].to_string().eq("\"success\"") {
             return String::new();
         }
         return res["msg"].to_string();
