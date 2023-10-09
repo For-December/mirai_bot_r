@@ -8,7 +8,7 @@ use bot::my_bot::*;
 use crate::bot::bot_trait::EventHandler;
 
 // impl AI for MyBot {}
-pub fn verify_and_bind() -> Result<(), Box<dyn std::error::Error>> {
+pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     let my_bot = MyBot::new()?;
     println!("{:?}", my_bot);
     loop {

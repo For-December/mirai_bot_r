@@ -24,45 +24,52 @@ impl EventHandler for MyBot {
         println!("{:#?}", serde_json::to_string(&store_chain).unwrap());
         match message_chain.len() {
             3 => {
+                // 如果是 at 机器人的消息
                 if message_chain[1]._type.eq("At")
                     && message_chain[2]._type.eq("Plain")
                     && message_chain[1].target.unwrap().to_string().eq(&self.qq)
-                    && message_chain[2]
+                {
+                    // 匹配到指令
+                    if message_chain[2]
                         .text
                         .as_ref()
                         .unwrap()
                         .contains("admin add")
-                {
-                    let msg = message_chain[2].text.as_ref().unwrap();
+                    {
+                        let msg = message_chain[2].text.as_ref().unwrap();
 
-                    let reg = Regex::new(r"admin add ([0-9]+)").unwrap();
-                    println!("{:#?}", reg);
-                    for (_, [qq]) in reg.captures_iter(&msg).map(|c| c.extract()) {
-                        let res = self.member_admin(&APP_CONF.bot_group, qq, true);
+                        let reg = Regex::new(r"admin add ([0-9]+)").unwrap();
+                        println!("{:#?}", reg);
+                        for (_, [qq]) in reg.captures_iter(&msg).map(|c| c.extract()) {
+                            let res = self.member_admin(&APP_CONF.bot_group, qq, true);
 
-                        if res.is_empty() {
-                            println!("已添加 {} 为管理员~", qq);
-                            let msg =
-                                MessageChain::new().build_text(format!("已添加 {} 为管理员~", qq));
-                            self.send_group_msg(&APP_CONF.bot_group, &msg);
-                        } else {
-                            let msg = MessageChain::new()
-                                .build_text(format!("添加失败, 失败原因: {}", res));
-                            self.send_group_msg(&APP_CONF.bot_group, &msg);
+                            if res.is_empty() {
+                                println!("已添加 {} 为管理员~", qq);
+                                let msg = MessageChain::new()
+                                    .build_text(format!("已添加 {} 为管理员~", qq));
+                                self.send_group_msg(&APP_CONF.bot_group, &msg);
+                            } else {
+                                let msg = MessageChain::new()
+                                    .build_text(format!("添加失败, 失败原因: {}", res));
+                                self.send_group_msg(&APP_CONF.bot_group, &msg);
+                            }
                         }
+                        return;
                     }
-                    return;
-                }
 
-                // 不是指令，则 AI 回复
-                if message_chain[1].target.unwrap().to_string().eq(&self.qq) {
+                    // 不是指令，且 at bot 则 AI 回复
                     let ans = self.process_text(message_chain[2].text.as_ref().unwrap().as_str());
                     let ans = MessageChain::new()
                         .build_at(sender.get_id())
                         .build_text(ans);
                     self.send_group_msg(sender.get_group().id.to_string().as_str(), &ans);
+                    return;
                 }
+
+                // 一般的消息，偷听
+                println!("{:#?}", message_chain);
             }
+
             _ => return,
         }
 
