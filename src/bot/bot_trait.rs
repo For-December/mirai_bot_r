@@ -10,3 +10,7 @@ pub trait BotAction {
     fn send_group_msg(&self, group_num: &str, msg: &MessageChain);
     fn send_group_nudge(&self, subject: String, target: String);
 }
+
+pub trait GroupAdmin {
+    fn member_admin(&self, group_num: &str, member_id: &str, assign: bool) -> String;
+}
