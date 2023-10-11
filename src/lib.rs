@@ -1,6 +1,7 @@
 use std::time::Duration;
 mod api;
 mod bot;
+mod database;
 mod setup;
 use bot::event::*;
 use bot::my_bot::*;
