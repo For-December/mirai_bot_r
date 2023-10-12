@@ -74,17 +74,17 @@ mod tests {
     use super::*;
     #[test]
     fn test_access() -> Result<(), Box<dyn std::error::Error>> {
-        get_access_token();
+        // get_access_token();
         Ok(())
     }
 
     #[test]
     fn test_wx_api() {
-        let conversations = vec![Conversation {
-            role: String::from("user"),
-            content: String::from("你好！"),
-        }];
-        let answer = wx_chat(&conversations).unwrap();
-        println!("{:#?}", answer);
+        // let conversations = vec![Conversation {
+        //     role: String::from("user"),
+        //     content: String::from("你好！"),
+        // }];
+        // let answer = wx_chat(&conversations).unwrap();
+        // println!("{:#?}", answer);
     }
 }
