@@ -4,7 +4,10 @@ use super::{
     message::{Message, MessageChain},
     my_bot::MyBot,
 };
-use crate::{api::wx_chat::AI, setup::conf::APP_CONF};
+use crate::{
+    api::{aitaffy::aitaffy, wx_chat::AI},
+    setup::conf::APP_CONF,
+};
 use rand::{thread_rng, Rng};
 use regex::Regex;
 use serde_json::Value;
@@ -62,10 +65,17 @@ impl EventHandler for MyBot {
                         .process_text(message_chain[2].text.as_ref().unwrap().as_str())
                         .replace("\\n", "\n")
                         .replace("\\", "");
-                    let ans = MessageChain::new()
-                        .build_at(sender.get_id())
-                        .build_text(ans);
-                    self.send_group_msg(sender.get_group().id.to_string().as_str(), &ans);
+                    // let ans = MessageChain::new()
+                    //     .build_at(sender.get_id())
+                    //     .build_text(ans);
+                    let mut tf = aitaffy(&ans);  
+                    let mut voice = MessageChain::new();
+                    tf.iter_mut().for_each(|add|{
+                        voice.build_voice(add);
+                    });
+                  
+                    self.send_group_msg(sender.get_group().id.to_string().as_ref(), &voice);
+                    // self.send_group_msg(sender.get_group().id.to_string().as_str(), &ans);
                     return;
                 }
 

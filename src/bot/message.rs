@@ -5,6 +5,7 @@ enum MessageType {
     Image(String),
     Source((Identity, i64)),
     At(i64),
+    Voice(String),
 }
 
 #[derive(Debug)]
@@ -38,13 +39,19 @@ impl MessageChain {
         )));
         self
     }
+    pub fn build_voice(&mut self, path: &str) -> &Self {
+        self.message_chain
+            .push(Message::with(MessageType::Voice(String::from(path))));
+
+        self
+    }
 
     pub fn get_message_chain(&self) -> &Vec<Message> {
         &self.message_chain
     }
 }
 
-#[derive(Debug,Serialize,Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Identity {
     Integer(i64),
@@ -66,6 +73,8 @@ pub struct Message {
     pub target: Option<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub display: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub path: Option<String>,
 }
 
 trait With<T> {
@@ -93,6 +102,11 @@ impl With<MessageType> for Message {
             MessageType::At(target) => Message {
                 _type: String::from("At"),
                 target: Some(target),
+                ..Default::default()
+            },
+            MessageType::Voice(path) => Message {
+                _type: String::from("Voice"),
+                path: Some(path),
                 ..Default::default()
             },
         }
