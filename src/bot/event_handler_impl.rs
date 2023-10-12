@@ -110,7 +110,7 @@ impl EventHandler for MyBot {
 
     fn handle_nudge_event(&self, from_id: &String, target: &String, subject: &Value) {
         println!("事件发生!");
-        if target.eq("3090807650") {
+        if target.eq(&self.qq) {
             if thread_rng().gen_range(0..10) < 6 {
                 return;
             }
