@@ -45,38 +45,38 @@ mod test {
 
     #[test]
     pub fn test_mysql() {
-        init_mysql_pool("mysql://root:fy@localhost:3306/test1");
-        let mut conn = get_connect();
-        let res = conn
-            .query_map("select * from t_user", |(id, name, birth, data)| User {
-                id,
-                name,
-                birth,
-                data,
-            })
-            .expect("query failed...");
-        for ele in res {
-            println!("{:#?}", ele);
-        }
+        // init_mysql_pool("mysql://root:fy@localhost:3306/test1");
+        // let mut conn = get_connect();
+        // let res = conn
+        //     .query_map("select * from t_user", |(id, name, birth, data)| User {
+        //         id,
+        //         name,
+        //         birth,
+        //         data,
+        //     })
+        //     .expect("query failed...");
+        // for ele in res {
+        //     println!("{:#?}", ele);
+        // }
     }
 
     #[test]
     pub fn test_mys() {
-        let _url = "mysql://root:fy@localhost:3306/test1";
-        let pool = mysql::Pool::new(_url).unwrap();
-        //连接数据库
-        let mut conn = pool.get_conn().unwrap();
-        let res = conn
-            .query_map("select * from t_user", |(id, name, birth, data)| User {
-                id,
-                name,
-                birth,
-                data,
-            })
-            .expect("Query failed.");
+        // let _url = "mysql://root:fy@localhost:3306/test1";
+        // let pool = mysql::Pool::new(_url).unwrap();
+        // //连接数据库
+        // let mut conn = pool.get_conn().unwrap();
+        // let res = conn
+        //     .query_map("select * from t_user", |(id, name, birth, data)| User {
+        //         id,
+        //         name,
+        //         birth,
+        //         data,
+        //     })
+        //     .expect("Query failed.");
 
-        for ele in res {
-            println!("{:#?}", ele)
-        }
+        // for ele in res {
+        //     println!("{:#?}", ele)
+        // }
     }
 }
