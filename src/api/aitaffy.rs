@@ -1,9 +1,10 @@
 use std::process::Command;
+const _MAX_LENGTH: usize = 256;
 pub fn aitaffy(msg: &str) -> Vec<String> {
     let mut res = Vec::new();
     let temp = msg;
-    if utf8_slice::len(temp) > 128 {
-        res.push(aitaffy_origin(utf8_slice::slice(temp, 0, 128)));
+    if utf8_slice::len(temp) > _MAX_LENGTH {
+        res.push(aitaffy_origin(utf8_slice::slice(temp, 0, _MAX_LENGTH)));
         // temp = utf8_slice::slice(temp, 128, utf8_slice::len(temp))
     } else {
         res.push(aitaffy_origin(msg));
