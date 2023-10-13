@@ -1,10 +1,35 @@
+use serde_json::Value;
+use sqlx::{
+    types::{time::PrimitiveDateTime, Json},
+    FromRow,
+};
+
+use crate::bot::message::Message;
+
+#[derive(Debug, FromRow)]
+struct AskAnswer {
+    pub id: Option<i32>,
+    pub asker_id: Option<String>,
+    pub replier_id: Option<String>,
+    pub ask_text: Option<String>,
+    pub answer: Option<Value>,
+    pub update_time: Option<PrimitiveDateTime>,
+    pub create_time: Option<PrimitiveDateTime>,
+}
+
 #[cfg(test)]
 mod test {
+    use std::path::Ancestors;
 
-    use std::time::SystemTime;
+    use crate::bot::message::Message;
+    use serde_json::Value;
 
-    use serde::{Deserialize, Serialize};
-    use sqlx::{types::time::PrimitiveDateTime, MySqlPool};
+    use sqlx::{
+        types::{time::PrimitiveDateTime, Json},
+        MySqlPool,
+    };
+
+    use super::AskAnswer;
 
     // use super::{get_connect, init_mysql_pool};
 
@@ -17,21 +42,45 @@ mod test {
     }
 
     #[test]
-    pub fn test_sqlx() {
+    pub fn test_ask_answer() {
         tokio::runtime::Builder::new_multi_thread()
             .enable_all()
             .build()
             .unwrap()
             .block_on(async {
-                let pool = MySqlPool::connect("mysql://root:fy@localhost:3306/test1")
+                let pool = MySqlPool::connect("mysql://root:fy@localhost:3306/group_msg_map")
                     .await
                     .unwrap();
-                let user: User = sqlx::query_as!(User, "SELECT * FROM t_user WHERE id = ?", 1)
-                    .fetch_one(&pool)
-                    .await
-                    .unwrap();
-                println!("{:#?}", user);
+                // 原来之前的报错是返回值类型不匹配啊，没有解包
+                    let res:AskAnswer = sqlx::query_as!(AskAnswer, "SELECT id,asker_id,replier_id,ask_text, answer,create_time,update_time FROM ask_answer WHERE id = 1").fetch_one(&pool).await.unwrap();
+                    
+                    
+                    let res:Message = serde_json::from_value(res.answer.unwrap()).unwrap();
+
+                    println!("{:#?}",res)
             });
+    }
+
+    #[test]
+    pub fn test_sqlx() {
+        // tokio::runtime::Builder::new_multi_thread()
+        // .enable_all()
+        // .build()
+        // .unwrap()
+        // .block_on(async {
+        //     let pool = MySqlPool::connect("mysql://root:fy@localhost:3306/test1")
+        //         .await
+        //         .unwrap();
+        //     let user: User = sqlx::query_as!(
+        //         User,
+        //         "SELECT * FROM t_user WHERE LEVENSHTEIN(?,name) < 3 ",
+        //         "jack"
+        //     )
+        //     .fetch_one(&pool)
+        //     .await
+        //     .unwrap();
+        //     println!("{:#?}", user);
+        // });
     }
 
     #[test]
