@@ -81,6 +81,7 @@ impl EventHandler for MyBot {
 
                 // 一般的消息，偷听
                 println!("{:#?}", message_chain);
+                
             }
 
             _ => return,

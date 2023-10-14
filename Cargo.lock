@@ -796,6 +796,7 @@ dependencies = [
 name = "mirai_bot"
 version = "0.1.0"
 dependencies = [
+ "dotenvy",
  "lazy_static",
  "rand",
  "regex",
