@@ -28,9 +28,9 @@ impl MessageChain {
 
         self
     }
-    pub fn build_text(mut self, text: String) -> Self {
+    pub fn build_text(mut self, text: &str) -> Self {
         self.message_chain
-            .push(Message::with(MessageType::Plain(text)));
+            .push(Message::with(MessageType::Plain(String::from(text))));
         self
     }
     pub fn build_at(mut self, target: String) -> Self {
@@ -39,7 +39,8 @@ impl MessageChain {
         )));
         self
     }
-    pub fn build_voice(&mut self, path: &str) -> &Self {
+    // 独占，无法联合
+    pub fn build_voice(mut self, path: &str) -> Self {
         self.message_chain
             .push(Message::with(MessageType::Voice(String::from(path))));
 

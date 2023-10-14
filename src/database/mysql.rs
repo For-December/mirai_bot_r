@@ -51,7 +51,7 @@ pub fn get_nearest_answer(ask: &str) -> Result<Vec<Message>, Box<dyn std::error:
     Ok(res)
 }
 
-pub fn set_ask_answer(ask: &str, asker_id: &str, replier_id: &str, answer: Vec<Message>) {
+pub fn set_ask_answer(ask: &str, asker_id: &str, replier_id: &str, answer: &Vec<Message>) {
     let answer = serde_json::to_value(answer).unwrap();
     let database_url = get_url();
     let res = tokio::runtime::Builder::new_multi_thread()
@@ -80,7 +80,10 @@ pub fn set_ask_answer(ask: &str, asker_id: &str, replier_id: &str, answer: Vec<M
 mod test {
     use std::path::Ancestors;
 
-    use crate::bot::message::Message;
+    use crate::{
+        bot::message::{Message, MessageChain},
+        database::mysql::set_ask_answer,
+    };
     use serde_json::Value;
 
     use sqlx::{
@@ -104,6 +107,12 @@ mod test {
     pub fn test_ask_answer() {
         let res = get_nearest_answer("测试").unwrap();
         println!("{:#?}", res);
+        let ask = "好好好";
+        let asker_id = "1921567337";
+        let replier_id = "1921567337";
+        let answer = MessageChain::new().build_text("text");
+        let answer = answer.get_message_chain();
+        set_ask_answer(ask, asker_id, replier_id, answer)
     }
 
     #[test]

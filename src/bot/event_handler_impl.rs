@@ -49,11 +49,11 @@ impl EventHandler for MyBot {
                             if res.is_empty() {
                                 println!("已添加 {} 为管理员~", qq);
                                 let msg = MessageChain::new()
-                                    .build_text(format!("已添加 {} 为管理员~", qq));
+                                    .build_text(&format!("已添加 {} 为管理员~", qq));
                                 self.send_group_msg(&APP_CONF.bot_group, &msg);
                             } else {
                                 let msg = MessageChain::new()
-                                    .build_text(format!("添加失败, 失败原因: {}", res));
+                                    .build_text(&format!("添加失败, 失败原因: {}", res));
                                 self.send_group_msg(&APP_CONF.bot_group, &msg);
                             }
                         }
@@ -67,7 +67,7 @@ impl EventHandler for MyBot {
                         .replace("\\", "");
                     let ans = MessageChain::new()
                         .build_at(sender.get_id())
-                        .build_text(ans);
+                        .build_text(&ans);
                     // let mut tf = aitaffy(&ans);
                     // let mut voice = MessageChain::new();
                     // tf.iter_mut().for_each(|add|{
@@ -127,7 +127,7 @@ impl EventHandler for MyBot {
             }
             let msg = MessageChain::new()
                 .build_at(String::from(from_id))
-                .build_text(String::from("别戳我！"))
+                .build_text("别戳我！")
                 .build_img(String::from("https://api.vvhan.com/api/acgimg"));
             self.send_group_msg(&subject["id"].to_string(), &msg);
         }
