@@ -52,7 +52,7 @@ impl MessageChain {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(untagged)]
 pub enum Identity {
     Integer(i64),
@@ -67,6 +67,9 @@ pub struct Message {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub url: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "imageId")]
+    pub image_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<Identity>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub time: Option<i64>,
@@ -76,6 +79,22 @@ pub struct Message {
     pub display: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub path: Option<String>,
+}
+
+impl Clone for Message {
+    fn clone(&self) -> Self {
+        Self {
+            _type: self._type.clone(),
+            text: self.text.clone(),
+            url: self.url.clone(),
+            id: self.id.clone(),
+            time: self.time.clone(),
+            target: self.target.clone(),
+            display: self.display.clone(),
+            path: self.path.clone(),
+            image_id: self.image_id.clone(),
+        }
+    }
 }
 
 trait With<T> {
@@ -89,11 +108,23 @@ impl With<MessageType> for Message {
                 text: Some(text),
                 ..Default::default()
             },
-            MessageType::Image(url) => Message {
-                _type: String::from("Image"),
-                url: Some(url),
-                ..Default::default()
-            },
+            MessageType::Image(param) => {
+                if param.contains("}.") {
+                    let image_id = param;
+                    Message {
+                        _type: String::from("Image"),
+                        image_id: Some(image_id),
+                        ..Default::default()
+                    }
+                } else {
+                    let url = param;
+                    Message {
+                        _type: String::from("Image"),
+                        url: Some(url),
+                        ..Default::default()
+                    }
+                }
+            }
             MessageType::Source((id, time)) => Message {
                 _type: String::from("Source"),
                 id: Some(id),

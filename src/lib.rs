@@ -10,7 +10,7 @@ use crate::bot::bot_trait::EventHandler;
 
 // impl AI for MyBot {}
 pub fn run() -> Result<(), Box<dyn std::error::Error>> {
-    let my_bot = MyBot::new()?;
+    let mut my_bot = MyBot::new()?;
     println!("{:?}", my_bot);
     loop {
         std::thread::sleep(Duration::from_secs(5));

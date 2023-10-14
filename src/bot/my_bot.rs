@@ -8,6 +8,7 @@ use std::collections::HashMap;
 pub struct MyBot {
     pub qq: String,
     pub session_key: String,
+    pub is_mute: bool,
 }
 
 impl MyBot {
@@ -17,7 +18,17 @@ impl MyBot {
         let session_key = Self::get_verify(&config.verify_key)?;
         let qq = config.bot_qq.clone();
         Self::bind_release_verify(&session_key, &qq, false)?;
-        Ok(MyBot { session_key, qq })
+        Ok(MyBot {
+            session_key,
+            qq,
+            is_mute: false,
+        })
+    }
+    pub fn mute(&mut self) {
+        self.is_mute = true;
+    }
+    pub fn active(&mut self) {
+        self.is_mute = false;
     }
 
     pub fn get_events(&self, count: i32) -> Result<Option<Vec<Event>>, Box<dyn std::error::Error>> {

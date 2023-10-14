@@ -25,7 +25,7 @@ fn get_url() -> String {
     })();
     database_url.expect("请配置DATABASE_URL")
 }
-pub fn get_nearest_answer(ask: &str) -> Result<Vec<Message>, Box<dyn std::error::Error>> {
+pub fn get_nearest_answer(ask: &str) -> Option<Vec<Message>> {
     let database_url = get_url();
     let res = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
@@ -36,19 +36,28 @@ pub fn get_nearest_answer(ask: &str) -> Result<Vec<Message>, Box<dyn std::error:
             let pool = MySqlPool::connect(&database_url).await.unwrap();
             // 原来之前的报错是返回值类型不匹配啊，没有解包
             let res: AskAnswer = sqlx::query_as!(
-            AskAnswer,
-             "SELECT id,asker_id,replier_id,ask_text, answer,create_time,update_time FROM ask_answer WHERE LEVENSHTEIN(?,ask_text) < 3 ORDER BY LEVENSHTEIN(?,ask_text) ASC", // ascending&descending
-             ask,ask)
+            AskAnswer,// LEVENSHTEIN
+             "SELECT id,asker_id,replier_id,ask_text, answer,create_time,update_time FROM ask_answer WHERE LEVENSHTEIN(?,ask_text) < 2 ORDER BY RAND() LIMIT 1", // ascending&descending
+             ask)
             .fetch_one(&pool)
             .await
-            .unwrap();
+            .unwrap_or_default();
 
-            let res: Vec<Message> = serde_json::from_value(res.answer.unwrap())
-                .unwrap_or_else(|_| panic!("解析messageChain失败"));
-            res
+            match res.answer {
+                Some(answer) => {
+                    let res: Vec<Message> = serde_json::from_value(answer)
+                        .unwrap_or_else(|_| panic!("解析messageChain失败"));
+                    return Some(res);
+                }
+                None => {
+                    println!("{:#?}", res);
+                    return None;
+                }
+            }
         });
-    println!("{:#?}", res);
-    Ok(res)
+    res
+    // println!("{:#?}", res);
+    // Ok(res)
 }
 
 pub fn set_ask_answer(ask: &str, asker_id: &str, replier_id: &str, answer: &Vec<Message>) {
@@ -105,14 +114,14 @@ mod test {
 
     #[test]
     pub fn test_ask_answer() {
-        let res = get_nearest_answer("测试").unwrap();
+        let res = get_nearest_answer("别急").unwrap();
         println!("{:#?}", res);
-        let ask = "好好好";
-        let asker_id = "1921567337";
-        let replier_id = "1921567337";
-        let answer = MessageChain::new().build_text("text");
-        let answer = answer.get_message_chain();
-        set_ask_answer(ask, asker_id, replier_id, answer)
+        // let ask = "好好呀好";
+        // let asker_id = "1921567337";
+        // let replier_id = "1921567337";
+        // let answer = MessageChain::new().build_text("文本消息");
+        // let answer = answer.get_message_chain();
+        // set_ask_answer(ask, asker_id, replier_id, answer)
     }
 
     #[test]

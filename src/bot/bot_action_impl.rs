@@ -4,6 +4,9 @@ use super::{bot_trait::BotAction, message::MessageChain, my_bot::MyBot};
 
 impl BotAction for MyBot {
     fn send_group_msg(&self, group_num: &str, msg: &MessageChain) {
+        if self.is_mute {
+            return;
+        }
         let message_chain: Value = to_value(msg.get_message_chain()).unwrap();
         let json = json!({
             "target": group_num,
