@@ -24,7 +24,14 @@ fn chat_listen(message_chain: &Vec<Message>, sender: &GroupSender) {
                 println!("ask:{:#?}\n answer:{:#?}", ask, answer);
                 for ele in ask.1 {
                     match ele._type.as_str() {
-                        "Plain" => set_ask_answer(&ele.text.unwrap(), &ask.0, &answer.0, &answer.1),
+                        "Plain" => {
+                            let ask_text = ele.text.unwrap();
+                            let mut ask_text = ask_text.as_str();
+                            if utf8_slice::len(ask_text) > 255 {
+                                ask_text = utf8_slice::slice(ask_text, 0, 255);
+                            }
+                            set_ask_answer(ask_text, &ask.0, &answer.0, &answer.1)
+                        }
                         "Image" => {
                             set_ask_answer(&ele.image_id.unwrap(), &ask.0, &answer.0, &answer.1)
                         }
@@ -146,6 +153,9 @@ impl EventHandler for MyBot {
                         return;
                     }
 
+                    if self.is_mute {
+                        return;
+                    }
                     // 不是指令，且 at bot 则 AI 回复
                     let ans = self
                         .process_text(message_chain[1].text.as_ref().unwrap().as_str())
@@ -168,6 +178,9 @@ impl EventHandler for MyBot {
                 // 一般的消息，偷听
                 println!("{:#?}", message_chain);
                 chat_listen(&message_chain, sender);
+                if !sender.get_group().id.to_string().eq(&APP_CONF.bot_group) {
+                    return;
+                }
                 try_answer(
                     &message_chain,
                     self,
@@ -177,6 +190,9 @@ impl EventHandler for MyBot {
 
             _ => {
                 chat_listen(&message_chain, sender);
+                if !sender.get_group().id.to_string().eq(&APP_CONF.bot_group) {
+                    return;
+                }
                 try_answer(
                     &message_chain,
                     self,
@@ -225,8 +241,8 @@ impl EventHandler for MyBot {
             // }
             let msg = MessageChain::new()
                 .build_at(String::from(from_id))
-                .build_text("别戳我！")
-                .build_img(String::from("https://api.vvhan.com/api/acgimg"));
+                .build_text("别戳我！") // https://api.vvhan.com/api/acgimg
+                .build_img(String::from("https://t.mwm.moe/ycy"));
             self.send_group_nudge(subject["id"].to_string(), from_id.clone());
             self.send_group_msg(&subject["id"].to_string(), &msg);
         }

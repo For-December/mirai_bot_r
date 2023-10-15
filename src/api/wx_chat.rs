@@ -80,6 +80,7 @@ mod tests {
 
     #[test]
     fn test_wx_api() {
+        println!("{},{}", utf8_slice::len("你好"), "你好".len());
         // let conversations = vec![Conversation {
         //     role: String::from("user"),
         //     content: String::from("你好！"),
