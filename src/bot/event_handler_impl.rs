@@ -3,9 +3,11 @@ use super::{
     group::GroupSender,
     message::{Message, MessageChain},
     my_bot::MyBot,
+    summary_msg::accumulate_msg,
 };
 use crate::{
     api::{aitaffy::aitaffy, wx_chat::AI},
+    bot::summary_msg::summary,
     database::mysql::{get_nearest_answer, set_ask_answer},
     setup::conf::APP_CONF,
 };
@@ -83,6 +85,8 @@ impl EventHandler for MyBot {
         }
 
         let message_chain = message_chain;
+        accumulate_msg(&message_chain, sender);
+
         // println!(
         //     "tidy message_chain:\n{:#?}",
         //     serde_json::to_string(&message_chain).unwrap()
@@ -132,7 +136,7 @@ impl EventHandler for MyBot {
                         .contains("#poweroff")
                     {
                         let msg = MessageChain::new().build_text("已关机");
-
+                        self.active();
                         self.send_group_msg(&sender.get_group().id.to_string(), &msg);
                         exit(0);
                     }
@@ -156,6 +160,24 @@ impl EventHandler for MyBot {
                     if self.is_mute {
                         return;
                     }
+
+                    if message_chain[1].text.as_ref().unwrap().contains("summary") {
+                        let mut msg = String::from("下面是用户对话，格式为`昵称: 说话内容`，请帮我提取和总结其中的关键信息：\n");
+                        msg += &summary();
+                        println!("#######################\n{}\n#####################", msg);
+
+                        let ans = self
+                            .process_text(&msg)
+                            .replace("\\n", "\n")
+                            .replace("\\", "");
+                        let ans = MessageChain::new()
+                            .build_at(sender.get_id())
+                            .build_text(&ans);
+
+                        self.send_group_msg(sender.get_group().id.to_string().as_ref(), &ans);
+                        return;
+                    }
+
                     // 不是指令，且 at bot 则 AI 回复
                     let ans = self
                         .process_text(message_chain[1].text.as_ref().unwrap().as_str())
@@ -181,6 +203,11 @@ impl EventHandler for MyBot {
                 if !sender.get_group().id.to_string().eq(&APP_CONF.bot_group) {
                     return;
                 }
+
+                if thread_rng().gen_range(0..10) < 6 {
+                    return;
+                }
+
                 try_answer(
                     &message_chain,
                     self,
@@ -193,6 +220,11 @@ impl EventHandler for MyBot {
                 if !sender.get_group().id.to_string().eq(&APP_CONF.bot_group) {
                     return;
                 }
+
+                if thread_rng().gen_range(0..10) < 6 {
+                    return;
+                }
+
                 try_answer(
                     &message_chain,
                     self,
@@ -200,37 +232,6 @@ impl EventHandler for MyBot {
                 );
             }
         }
-
-        // if !message_chain[1]._type.eq_ignore_ascii_case("Plain")
-        //     || !message_chain[1].text.as_ref().unwrap().eq("测试3")
-        // {
-        //     if message_chain.len() == 2 {
-        //         return;
-        //     }
-
-        //     if message_chain[1]._type.eq("At")
-        //         && message_chain[1].target.unwrap().to_string().eq(&self.qq)
-        //         && message_chain[2]._type.eq("Plain")
-        //     {
-        //         let ans = self.process_text(message_chain[2].text.as_ref().unwrap().as_str());
-        //         let ans = MessageChain::new()
-        //             .build_at(sender.get_id())
-        //             .build_text(ans);
-        //         self.send_group_msg(sender.get_group().id.to_string().as_str(), &ans);
-        //     }
-
-        //     return;
-        // }
-
-        // let msg = MessageChain::new()
-        //     .build_text(String::from("你好！"))
-        //     .build_text(String::from("晚上好！"))
-        //     .build_img(String::from(
-        //         "https://i0.hdslb.com/bfs/album/67fc4e6b417d9c68ef98ba71d5e79505bbad97a1.png",
-        //     ))
-        //     .build_at(String::from(sender.get_id()));
-        // self.send_group_msg(&sender.get_group().id.to_string(), &msg);
-        // self.send_group_nudge(sender.get_group().id.to_string(), sender.get_id())
     }
 
     fn handle_nudge_event(&self, from_id: &String, target: &String, subject: &Value) {

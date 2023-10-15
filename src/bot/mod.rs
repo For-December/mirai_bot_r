@@ -7,3 +7,4 @@ pub mod group;
 mod group_admin_impl;
 pub mod message;
 pub mod my_bot;
+mod summary_msg;
