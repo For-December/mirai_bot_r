@@ -28,7 +28,7 @@ pub fn accumulate_msg(message_chain: &Vec<Message>, sender: &GroupSender) {
             "Image" => String::from("[图片]"),
             _ => String::new(),
         };
-        if data.len() > 30 {
+        if utf8_slice::len(&data) > 30 {
             continue;
         }
         data.push_str(&msg);

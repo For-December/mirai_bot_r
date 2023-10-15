@@ -22,7 +22,24 @@ fn chat_listen(message_chain: &Vec<Message>, sender: &GroupSender) {
             0 => GLOBAL_MSG.push((sender.get_id(), message_chain.to_vec())),
             1 => {
                 let ask = GLOBAL_MSG.pop().unwrap();
-                let answer = (sender.get_id(), message_chain.to_vec());
+                let answer = {
+                    for ele in message_chain {
+                        let text_len = utf8_slice::len(&ele.text.clone().unwrap_or_default());
+
+                        // 有过长的消息（小作文），则概率记录
+                        if text_len > 120 {
+                            return; // 小作文大于 120 直接不记录
+                        }
+
+                        // [0-120) [51-120)
+                        // 不记录概率 51/120 ~ 119/120
+                        // 记录概率 69/120 ~ 1/120
+                        if text_len > 50 && thread_rng().gen_range(0..120) < text_len {
+                            return;
+                        }
+                    }
+                    (sender.get_id(), message_chain.to_vec())
+                };
                 println!("ask:{:#?}\n answer:{:#?}", ask, answer);
                 for ele in ask.1 {
                     match ele._type.as_str() {
