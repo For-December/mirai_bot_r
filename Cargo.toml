@@ -35,4 +35,6 @@ sqlx = { version = "0.7", features = [
 
 dotenvy = "0.15.7"
 
+chatgpt_rs = "1.2.3"
+
 # diesel = { version = "2.1.3", features = ["mysql"] }

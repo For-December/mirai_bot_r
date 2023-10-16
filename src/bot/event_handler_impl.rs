@@ -6,7 +6,7 @@ use super::{
     summary_msg::accumulate_msg,
 };
 use crate::{
-    api::{aitaffy::aitaffy, wx_chat::AI},
+    api::{aitaffy::aitaffy, chatgpt::AI},
     bot::summary_msg::summary,
     database::mysql::{get_nearest_answer, set_ask_answer},
     setup::conf::APP_CONF,

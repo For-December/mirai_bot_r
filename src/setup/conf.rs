@@ -9,12 +9,19 @@ pub struct AppConfig {
     pub bot_qq: String,
     pub bot_group: String,
     pub wx_api: WXApi,
+    pub gpt_api: GPTApi,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct WXApi {
     pub api_key: String,
     pub secret_key: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct GPTApi {
+    pub api_key: String,
+    pub end_point: String,
 }
 
 lazy_static! {
