@@ -26,7 +26,7 @@ impl GroupSender {
         self.sender["specialTitle"].to_string()
     }
     pub fn get_group(&self) -> Group {
-        println!("{:#?}", self.sender);
+        // println!("{:#?}", self.sender);
         let res: Group = serde_json::from_value(self.sender["group"].clone()).unwrap();
         res
     }

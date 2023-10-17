@@ -5,14 +5,14 @@ pub fn post_msg(
     api_path: &str,
     session_key: &str,
 ) -> Result<String, Box<dyn std::error::Error>> {
-    println!("{}", APP_CONF.base_url.clone() + api_path);
+    // println!("{}", APP_CONF.base_url.clone() + api_path);
     let res = reqwest::blocking::Client::new()
         .post(&(APP_CONF.base_url.clone() + api_path))
         .body(json)
         .header("sessionKey", session_key)
         .send()?
         .text()?;
-    println!("{:#?}", res);
+    // println!("{:#?}", res);
     Ok(res)
 }
 
@@ -21,7 +21,7 @@ pub fn get_msg(
     api_path: &str,
     session_key: &str,
 ) -> Result<String, Box<dyn std::error::Error>> {
-    println!("{}", APP_CONF.base_url.clone() + api_path);
+    // println!("{}", APP_CONF.base_url.clone() + api_path);
     let mut req_builder = reqwest::blocking::Client::new()
         .get(&(APP_CONF.base_url.clone() + api_path))
         .header("sessionKey", session_key);
@@ -29,7 +29,7 @@ pub fn get_msg(
         req_builder = req_builder.query(&[ele]);
     }
     let res = req_builder.send()?.text()?;
-    println!("{:#?}", res);
+    // println!("{:#?}", res);
 
     Ok(res)
 }
