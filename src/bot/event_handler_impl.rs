@@ -190,7 +190,7 @@ impl EventHandler for MyBot {
 
                     if message_chain[1].text.as_ref().unwrap().contains("summary") {
                         let mut msg = String::from("下面是用户对话，格式为`昵称: 说话内容`，请帮我提取和总结其中的关键信息：\n");
-                        msg += &summary();
+                        msg += &summary(sender.get_group().id.to_string().as_str());
                         println!("#######################\n{}\n#####################", msg);
 
                         let ans = self

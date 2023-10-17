@@ -912,6 +912,7 @@ dependencies = [
  "chatgpt_rs",
  "dotenvy",
  "lazy_static",
+ "once_cell",
  "rand",
  "regex",
  "reqwest",
