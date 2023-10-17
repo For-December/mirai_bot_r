@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{str::FromStr, time::Duration};
 
 use chatgpt::prelude::{ChatGPT, ModelConfigurationBuilder};
 
@@ -12,6 +12,7 @@ pub trait AI {
 
         let conf = ModelConfigurationBuilder::default()
             .api_url(reqwest::Url::from_str(APP_CONF.gpt_api.end_point.as_str()).unwrap())
+            .timeout(Duration::from_secs(100))
             .build()
             .unwrap();
 

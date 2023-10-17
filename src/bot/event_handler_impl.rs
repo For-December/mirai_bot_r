@@ -49,11 +49,21 @@ fn chat_listen(message_chain: &Vec<Message>, sender: &GroupSender) {
                             if utf8_slice::len(ask_text) > 255 {
                                 ask_text = utf8_slice::slice(ask_text, 0, 255);
                             }
-                            set_ask_answer(ask_text, &ask.0, &answer.0, &answer.1)
+                            set_ask_answer(
+                                ask_text,
+                                sender.get_group().id.to_string().as_str(),
+                                &ask.0,
+                                &answer.0,
+                                &answer.1,
+                            )
                         }
-                        "Image" => {
-                            set_ask_answer(&ele.image_id.unwrap(), &ask.0, &answer.0, &answer.1)
-                        }
+                        "Image" => set_ask_answer(
+                            &ele.image_id.unwrap(),
+                            sender.get_group().id.to_string().as_str(),
+                            &ask.0,
+                            &answer.0,
+                            &answer.1,
+                        ),
                         _ => return,
                     }
                 }
@@ -70,14 +80,14 @@ fn try_answer(ask: &Vec<Message>, bot: &MyBot, group_num: &str) {
     for ele in ask {
         match ele._type.as_str() {
             // "Plain" | "Image" => (),
-            "Plain" => match get_nearest_answer(ele.text.as_ref().unwrap()) {
+            "Plain" => match get_nearest_answer(ele.text.as_ref().unwrap(), group_num) {
                 Some(answer) => {
                     println!("搜到答案，尝试回复！");
                     bot.send_group_msg(group_num, &MessageChain::from(answer))
                 }
                 None => println!("未找到Plain"),
             },
-            "Image" => match get_nearest_answer(ele.image_id.as_ref().unwrap()) {
+            "Image" => match get_nearest_answer(ele.image_id.as_ref().unwrap(), group_num) {
                 Some(answer) => {
                     println!("搜到答案，尝试回复！");
                     bot.send_group_msg(group_num, &MessageChain::from(answer))

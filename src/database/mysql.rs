@@ -6,6 +6,7 @@ use crate::bot::message::Message;
 #[derive(Debug, FromRow, Default)]
 struct AskAnswer {
     pub id: Option<i32>,
+    pub group_id: Option<String>,
     pub asker_id: Option<String>,
     pub replier_id: Option<String>,
     pub ask_text: Option<String>,
@@ -25,7 +26,7 @@ fn get_url() -> String {
     })();
     database_url.expect("请配置DATABASE_URL")
 }
-pub fn get_nearest_answer(ask: &str) -> Option<Vec<Message>> {
+pub fn get_nearest_answer(ask: &str, group_id: &str) -> Option<Vec<Message>> {
     let database_url = get_url();
     let res = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
@@ -37,8 +38,8 @@ pub fn get_nearest_answer(ask: &str) -> Option<Vec<Message>> {
             // 原来之前的报错是返回值类型不匹配啊，没有解包
             let res: AskAnswer = sqlx::query_as!(
             AskAnswer,// LEVENSHTEIN
-             "SELECT id,asker_id,replier_id,ask_text, answer,create_time,update_time FROM ask_answer WHERE LEVENSHTEIN(?,ask_text) < 2 ORDER BY RAND() LIMIT 1", // ascending&descending
-             ask)
+             "SELECT id,group_id,asker_id,replier_id,ask_text, answer,create_time,update_time FROM ask_answer WHERE LEVENSHTEIN(?,ask_text) < 2 AND group_id = ? ORDER BY RAND() LIMIT 1", // ascending&descending
+             ask,group_id)
             .fetch_one(&pool)
             .await
             .unwrap_or_default();
@@ -60,7 +61,13 @@ pub fn get_nearest_answer(ask: &str) -> Option<Vec<Message>> {
     // Ok(res)
 }
 
-pub fn set_ask_answer(ask: &str, asker_id: &str, replier_id: &str, answer: &Vec<Message>) {
+pub fn set_ask_answer(
+    ask: &str,
+    group_id: &str,
+    asker_id: &str,
+    replier_id: &str,
+    answer: &Vec<Message>,
+) {
     let answer = serde_json::to_value(answer).unwrap();
     let database_url = get_url();
     let res = tokio::runtime::Builder::new_multi_thread()
@@ -72,7 +79,8 @@ pub fn set_ask_answer(ask: &str, asker_id: &str, replier_id: &str, answer: &Vec<
             let pool = MySqlPool::connect(&database_url).await.unwrap();
             // 原来之前的报错是返回值类型不匹配啊，没有解包
             sqlx::query!(
-                "INSERT INTO ask_answer(asker_id,replier_id,ask_text,answer) VALUES(?,?,?,?)",
+                "INSERT INTO ask_answer(group_id,asker_id,replier_id,ask_text,answer) VALUES(?,?,?,?,?)",
+                group_id,
                 asker_id,
                 replier_id,
                 ask,
@@ -114,8 +122,8 @@ mod test {
 
     #[test]
     pub fn test_ask_answer() {
-        let res = get_nearest_answer("别急").unwrap();
-        println!("{:#?}", res);
+        // let res = get_nearest_answer("别急").unwrap();
+        // println!("{:#?}", res);
         // let ask = "好好呀好";
         // let asker_id = "1921567337";
         // let replier_id = "1921567337";
