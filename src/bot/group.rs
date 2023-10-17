@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -8,6 +8,7 @@ pub struct Group {
     pub permission: String,
 }
 
+#[derive(Debug, Clone)]
 pub struct GroupSender {
     sender: Value, // messageChain and sender
 }

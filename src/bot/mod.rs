@@ -1,6 +1,7 @@
 pub mod api_utils;
 mod bot_action_impl;
 pub mod bot_trait;
+mod custom_impl;
 pub mod event;
 mod event_handler_impl;
 pub mod group;

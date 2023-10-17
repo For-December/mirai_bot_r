@@ -1,5 +1,6 @@
 use std::{str::FromStr, time::Duration};
 
+use async_trait::async_trait;
 use chatgpt::prelude::{ChatGPT, ModelConfigurationBuilder};
 
 use crate::setup::conf::APP_CONF;
