@@ -51,7 +51,7 @@ pub fn get_nearest_answer(ask: &str, group_id: &str) -> Option<Vec<Message>> {
                     return Some(res);
                 }
                 None => {
-                    println!("{:#?}", res);
+                    // println!("{:#?}", res);
                     return None;
                 }
             }
@@ -70,7 +70,7 @@ pub fn set_ask_answer(
 ) {
     let answer = serde_json::to_value(answer).unwrap();
     let database_url = get_url();
-    let res = tokio::runtime::Builder::new_multi_thread()
+    tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()
         .unwrap()
@@ -90,7 +90,7 @@ pub fn set_ask_answer(
             .await
             .expect("添加失败！");
         });
-    println!("{:#?}", res);
+    println!("数据添加成功, ask:{}", ask);
 }
 
 #[cfg(test)]
