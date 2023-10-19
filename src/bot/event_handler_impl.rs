@@ -43,10 +43,12 @@ impl EventHandler for MyBot {
         }
 
         let group_num = sender.get_group().id.to_string();
-        // accumulate_msg(&message_chain, sender);
+        let temp_chain = message_chain.clone();
+        let temp_sender = sender.clone();
+        tokio::task::spawn(async move { accumulate_msg(temp_chain, temp_sender).await });
 
         // if self.say_or_not_instruction(&message_chain, &group_num) {
-            // return;
+        // return;
         // }
 
         // if self.summary_instruction(&message_chain, sender) {

@@ -12,19 +12,18 @@ lazy_static! {
     static ref CONVERSATIONS: Arc<Mutex<HashMap<String, VecDeque<String>>>> =
         Arc::new(Mutex::new(HashMap::new()));
 }
-pub async fn accumulate_msg(message_chain: &Vec<Message>, sender: &GroupSender) {
+pub async fn accumulate_msg(message_chain: Vec<Message>, sender: GroupSender) {
     let mut data = String::new();
     data.push_str(sender.get_member_name().as_str());
     data.push_str(": ");
     for ele in message_chain {
         let msg = match ele._type.as_str() {
             "At" => ele
-                .clone()
                 .display
                 .unwrap_or_default()
                 .trim_matches('@')
                 .to_string(),
-            "Plain" => ele.clone().text.unwrap_or_default().to_string(),
+            "Plain" => ele.text.unwrap_or_default().to_string(),
             "Image" => String::from("[图片]"),
             _ => String::new(),
         };
