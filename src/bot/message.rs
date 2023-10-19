@@ -8,18 +8,29 @@ enum MessageType {
     Voice(String),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct MessageChain {
+    pub group_num: Option<String>,
     message_chain: Vec<Message>,
 }
 impl MessageChain {
     // 链式调用，所有权转移
     pub fn new() -> MessageChain {
         let message_chain: Vec<Message> = Vec::new();
-        return MessageChain { message_chain };
+        return MessageChain {
+            group_num: None,
+            message_chain,
+        };
     }
-    pub fn from(message_chain: Vec<Message>) -> MessageChain {
-        return MessageChain { message_chain };
+    pub fn from(group_num: Option<String>, message_chain: Vec<Message>) -> MessageChain {
+        return MessageChain {
+            group_num,
+            message_chain,
+        };
+    }
+    pub fn build_target(mut self, group_num: &str) -> Self {
+        self.group_num = Some(String::from(group_num));
+        self
     }
     pub fn build_img(mut self, url: String) -> Self {
         // Message::with(String::from("value"));

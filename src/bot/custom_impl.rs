@@ -136,7 +136,7 @@ impl MyBot {
                 .build_at(sender.get_id())
                 .build_text(&ans);
 
-            self.send_group_msg(sender.get_group().id.to_string().as_ref(), &ans);
+            // self.send_group_msg(sender.get_group().id.to_string().as_ref(), &ans);
             return true;
         }
         return false;

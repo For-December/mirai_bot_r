@@ -25,13 +25,13 @@ impl MyBot {
         let qq = APP_CONF.bot_qq.clone();
 
         Self::bind_release_verify(&session_key, &qq, false).await?;
-        return Ok(MyBot {
-            qq,
-            session_key
-        });
+        return Ok(MyBot { qq, session_key });
     }
 
-    pub async fn get_events(&'static self, count: i32) -> Result<Option<Vec<Event>>, Box<dyn std::error::Error>> {
+    pub async fn get_events(
+        &'static self,
+        count: i32,
+    ) -> Result<Option<Vec<Event>>, Box<dyn std::error::Error>> {
         let mut map = HashMap::new();
         let count = count.to_string();
         map.insert("count", count.as_str());
@@ -49,7 +49,7 @@ impl MyBot {
                 let message_chain: Vec<Message> =
                     serde_json::from_value(data["messageChain"].clone()).unwrap();
                 res_arr.push(Event::GroupEvent((
-                    MessageChain::from(message_chain),
+                    MessageChain::from(None, message_chain),
                     GroupSender::new(data["sender"].clone()),
                 )));
             } else if data["type"].to_string().contains("NudgeEvent") {
