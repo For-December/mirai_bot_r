@@ -49,7 +49,7 @@ pub async fn run() -> Result<(), Box<dyn std::error::Error>> {
         // 开新线程处理任务
         events.into_iter().for_each(|event| match event {
             Event::GroupEvent((message_chain, sender)) => {
-                tokio::spawn(async move {
+                tokio::task::spawn(async move {
                     MY_BOT
                         .get()
                         .unwrap()
@@ -58,7 +58,7 @@ pub async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 });
             }
             Event::NudgeEvent((from_id, target, subject)) => {
-                tokio::spawn(async move {
+                tokio::task::spawn(async move {
                     MY_BOT
                         .get()
                         .unwrap()
