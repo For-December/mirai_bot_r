@@ -45,7 +45,7 @@ impl MyBot {
 #post --在聊天室发帖（待完成）
                 "#,
                 );
-                self.send_group_msg(&APP_CONF.bot_group, &msg);
+                // self.send_group_msg(&APP_CONF.bot_group, &msg);
                 return true;
             }
             // 匹配到指令
@@ -60,18 +60,19 @@ impl MyBot {
                 let reg = Regex::new(r"admin add ([0-9]+)").unwrap();
                 // println!("{:#?}", reg);
                 for (_, [qq]) in reg.captures_iter(&msg).map(|c| c.extract()) {
-                    let res = self.member_admin(&APP_CONF.bot_group, qq, true);
+                    let res = String::new();
+                    // let res = self.member_admin(&APP_CONF.bot_group, qq, true);
 
                     if res.is_empty() {
                         println!("已添加 {} 为管理员~", qq);
                         let msg =
                             MessageChain::new().build_text(&format!("已添加 {} 为管理员~", qq));
-                        self.send_group_msg(&APP_CONF.bot_group, &msg);
+                        // self.send_group_msg(&APP_CONF.bot_group, &msg);
                     } else {
                         let msg =
                             MessageChain::new().build_text(&format!("添加失败, 失败原因: {}", res));
 
-                        self.send_group_msg(&APP_CONF.bot_group, &msg);
+                        // self.send_group_msg(&APP_CONF.bot_group, &msg);
                     }
                 }
                 return true;
@@ -84,23 +85,22 @@ impl MyBot {
                 .contains("#poweroff")
             {
                 let msg = MessageChain::new().build_text("已关机");
-                self.active();
-                self.send_group_msg(group_num, &msg);
+
+                // self.send_group_msg(group_num, &msg);
                 exit(0);
             }
 
             if message_chain[1].text.as_ref().unwrap().contains("mute") {
                 let msg = MessageChain::new().build_text("小A 已沉默");
 
-                self.send_group_msg(group_num, &msg);
-                self.mute();
+                // self.send_group_msg(group_num, &msg);
+
                 return true;
             }
 
             if message_chain[1].text.as_ref().unwrap().contains("active") {
-                self.active();
                 let msg = MessageChain::new().build_text("小A 开始活跃了！");
-                self.send_group_msg(group_num, &msg);
+                // self.send_group_msg(group_num, &msg);
 
                 return true;
             }
@@ -108,7 +108,11 @@ impl MyBot {
         return false;
     }
 
-    pub fn summary_instruction(&self, message_chain: &Vec<Message>, sender: &GroupSender) -> bool {
+    pub fn summary_instruction(
+        &'static self,
+        message_chain: &Vec<Message>,
+        sender: &GroupSender,
+    ) -> bool {
         if message_chain.len() != 2 {
             return false; // 表示该指令未运行
         }
@@ -162,7 +166,7 @@ impl MyBot {
         //     voice.build_voice(add);
         // });
 
-        self.send_group_msg(sender.get_group().id.to_string().as_ref(), &ans);
+        // self.send_group_msg(sender.get_group().id.to_string().as_ref(), &ans);
         return true;
     }
 }
@@ -235,14 +239,14 @@ pub fn try_answer(ask: &Vec<Message>, bot: &MyBot, group_num: &str) {
             "Plain" => match get_nearest_answer(ele.text.as_ref().unwrap(), group_num) {
                 Some(answer) => {
                     println!("搜到答案，尝试回复！");
-                    bot.send_group_msg(group_num, &MessageChain::from(answer))
+                    // bot.send_group_msg(group_num, &MessageChain::from(answer))
                 }
                 None => println!("未找到Plain"),
             },
             "Image" => match get_nearest_answer(ele.image_id.as_ref().unwrap(), group_num) {
                 Some(answer) => {
                     println!("搜到答案，尝试回复！");
-                    bot.send_group_msg(group_num, &MessageChain::from(answer))
+                    // bot.send_group_msg(group_num, &MessageChain::from(answer))
                 }
                 None => println!("未找到Image"),
             },

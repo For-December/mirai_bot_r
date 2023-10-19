@@ -1,16 +1,19 @@
+use async_trait::async_trait;
 use serde_json::Value;
 
 use super::{group::GroupSender, message::MessageChain};
 pub trait EventHandler {
-    fn handle_group_event(&mut self, message_chain: &MessageChain, sender: &GroupSender);
-    fn handle_nudge_event(&self, from_id: &String, target: &String, subject: &Value);
+    fn handle_group_event(&'static self, message_chain: &MessageChain, sender: &GroupSender);
+    fn handle_nudge_event(&'static self, from_id: &String, target: &String, subject: &Value);
 }
 
+#[async_trait]
 pub trait BotAction {
-    fn send_group_msg(&self, group_num: &str, msg: &MessageChain);
-    fn send_group_nudge(&self, subject: String, target: String);
+    async fn send_group_msg(&'static self, group_num: &str, msg: &MessageChain);
+    async fn send_group_nudge(&'static self, subject: String, target: String);
 }
 
+#[async_trait]
 pub trait GroupAdmin {
-    fn member_admin(&self, group_num: &str, member_id: &str, assign: bool) -> String;
+    async fn member_admin(&'static self, group_num: &str, member_id: &str, assign: bool) -> String;
 }

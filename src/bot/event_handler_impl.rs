@@ -17,55 +17,52 @@ use std::{
 };
 
 impl EventHandler for MyBot {
-    fn handle_group_event(&mut self, message_chain: &MessageChain, sender: &GroupSender) {
-        thread::sleep(Duration::from_secs(1));
-        let temp_chain = message_chain.get_message_chain();
-        let mut message_chain: Vec<Message> = Vec::new();
-        for ele in temp_chain {
-            if ele._type.eq_ignore_ascii_case("Source") || ele._type.eq_ignore_ascii_case("Quote") {
-                continue;
-            }
-            message_chain.push(ele.clone());
-        }
+    fn handle_group_event(&'static self, message_chain: &MessageChain, sender: &GroupSender) {
+        // thread::sleep(Duration::from_secs(1));
+        // let temp_chain = message_chain.get_message_chain();
+        // let mut message_chain: Vec<Message> = Vec::new();
+        // for ele in temp_chain {
+        //     if ele._type.eq_ignore_ascii_case("Source") || ele._type.eq_ignore_ascii_case("Quote") {
+        //         continue;
+        //     }
+        //     message_chain.push(ele.clone());
+        // }
 
-        let message_chain = message_chain;
+        // let message_chain = message_chain;
 
-        // 执行逻辑
-        if message_chain.len() == 0 {
-            return;
-        }
+        // // 执行逻辑
+        // if message_chain.len() == 0 {
+        //     return;
+        // }
 
-        let group_num = sender.get_group().id.to_string();
-        accumulate_msg(&message_chain, sender);
+        // let group_num = sender.get_group().id.to_string();
+        // accumulate_msg(&message_chain, sender);
 
-        if self.say_or_not_instruction(&message_chain, &group_num) {
-            return;
-        }
-        if self.is_mute {
-            return;
-        }
+        // if self.say_or_not_instruction(&message_chain, &group_num) {
+        //     return;
+        // }
 
-        if self.summary_instruction(&message_chain, sender) {
-            return;
-        }
+        // if self.summary_instruction(&message_chain, sender) {
+        //     return;
+        // }
 
-        chat_listen(&message_chain, &sender);
-        if !sender.get_group().id.to_string().eq(&APP_CONF.bot_group) {
-            return;
-        }
+        // chat_listen(&message_chain, &sender);
+        // if !sender.get_group().id.to_string().eq(&APP_CONF.bot_group) {
+        //     return;
+        // }
 
-        if thread_rng().gen_range(0..10) < 6 {
-            return;
-        }
+        // if thread_rng().gen_range(0..10) < 6 {
+        //     return;
+        // }
 
-        try_answer(
-            &message_chain,
-            self,
-            sender.get_group().id.to_string().as_str(),
-        );
+        // try_answer(
+        //     &message_chain,
+        //     self,
+        //     sender.get_group().id.to_string().as_str(),
+        // );
     }
 
-    fn handle_nudge_event(&self, from_id: &String, target: &String, subject: &Value) {
+    fn handle_nudge_event(&'static self, from_id: &String, target: &String, subject: &Value) {
         println!("事件发生!");
         if target.eq(&self.qq) {
             // if thread_rng().gen_range(0..10) > 6 {

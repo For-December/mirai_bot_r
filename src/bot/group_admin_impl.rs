@@ -1,23 +1,26 @@
+use async_trait::async_trait;
 use serde_json::{json, Value};
 
 use super::{bot_trait::GroupAdmin, my_bot::MyBot};
 
-impl GroupAdmin for MyBot {
-    fn member_admin(&self, group_num: &str, member_id: &str, assign: bool) -> String {
-        let json = json!({
-            "target":group_num,
-            "memberId":member_id,
-            "assign":assign,
-        })
-        .to_string();
-        let res = super::api_utils::post_msg(json, "/memberAdmin", &self.session_key).unwrap();
-        let res: Value = serde_json::from_str(&res).unwrap();
-        if res["msg"].to_string().eq("\"success\"") {
-            return String::new();
-        }
-        return res["msg"].to_string();
-    }
-}
+// #[async_trait]
+// impl GroupAdmin for MyBot {
+//     fn member_admin(&'static self, group_num: &str, member_id: &str, assign: bool) -> String {
+//         let json = json!({
+//             "target":group_num,
+//             "memberId":member_id,
+//             "assign":assign,
+//         })
+//         .to_string();
+//         let res = String::new();
+//         // let res = super::api_utils::post_msg(json, "/memberAdmin", &self.session_key).unwrap();
+//         let res: Value = serde_json::from_str(&res).unwrap();
+//         if res["msg"].to_string().eq("\"success\"") {
+//             return String::new();
+//         }
+//         return res["msg"].to_string();
+//     }
+// }
 #[cfg(test)]
 mod test {
     use regex::Regex;
