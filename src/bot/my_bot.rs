@@ -1,4 +1,4 @@
-use crate::{api::chatgpt::AI, setup::conf::APP_CONF};
+use crate::{api::wx_chat::AI, setup::conf::APP_CONF};
 
 use super::{event::Event, group::GroupSender, message::Message, message::MessageChain};
 use serde_json::{json, Value};
@@ -10,7 +10,7 @@ pub struct MyBot {
     pub session_key: String,
     pub is_mute: bool,
 }
-
+unsafe impl Sync for MyBot {}
 impl MyBot {
     pub fn new() -> Result<MyBot, Box<dyn std::error::Error>> {
         let config = &APP_CONF;

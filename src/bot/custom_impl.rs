@@ -4,7 +4,7 @@ use rand::{thread_rng, Rng};
 use regex::Regex;
 
 use crate::{
-    api::chatgpt::AI,
+    api::wx_chat::AI,
     bot::{
         bot_trait::{BotAction, GroupAdmin},
         message::MessageChain,
@@ -30,6 +30,24 @@ impl MyBot {
             && message_chain[1]._type.eq("Plain")
             && message_chain[0].target.unwrap().to_string().eq(&self.qq)
         {
+            if message_chain[1].text.as_ref().unwrap().contains("#help") {
+                println!(
+                    "{} {}",
+                    message_chain[1].text.as_ref().unwrap(),
+                    message_chain[1].text.as_ref().unwrap().eq(" #help"),
+                );
+                let msg = MessageChain::new().build_text(
+                    r#"小A当前的指令如下:
+#help --帮助
+#mute --让小A沉默
+#active --解除沉默
+#bilibili --随机获取b站视频（待完成）
+#post --在聊天室发帖（待完成）
+                "#,
+                );
+                self.send_group_msg(&APP_CONF.bot_group, &msg);
+                return true;
+            }
             // 匹配到指令
             if message_chain[1]
                 .text

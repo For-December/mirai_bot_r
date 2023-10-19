@@ -10,7 +10,11 @@ use crate::setup::conf::APP_CONF;
 use rand::{thread_rng, Rng};
 
 use serde_json::Value;
-use std::{thread, time::Duration};
+use std::{
+    sync::{Arc, Mutex},
+    thread,
+    time::Duration,
+};
 
 impl EventHandler for MyBot {
     fn handle_group_event(&mut self, message_chain: &MessageChain, sender: &GroupSender) {
@@ -44,8 +48,6 @@ impl EventHandler for MyBot {
         if self.summary_instruction(&message_chain, sender) {
             return;
         }
-
-        self.ai_chat(&message_chain, &sender);
 
         chat_listen(&message_chain, &sender);
         if !sender.get_group().id.to_string().eq(&APP_CONF.bot_group) {
