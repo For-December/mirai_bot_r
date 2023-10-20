@@ -3,9 +3,14 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 use crate::setup::conf::APP_CONF;
-use std::{collections::HashMap, process};
+use std::{
+    collections::HashMap,
+    process,
+    sync::{Arc, Mutex, RwLock},
+};
 
 use super::web_utils::post_utils;
+use lazy_static::lazy_static;
 
 async fn get_access_token() -> String {
     // 查询参数
@@ -37,7 +42,7 @@ async fn get_access_token() -> String {
     return res;
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Conversation {
     role: String,
     content: String,
@@ -56,24 +61,97 @@ async fn wx_chat(
     let res = post_utils(json, &url, HashMap::new(), HashMap::new()).await?;
     let answer: Value = serde_json::from_str(&res)?;
     let content = answer["result"].to_string();
+    if content.is_empty() {
+        println!("{}", answer);
+    }
     return Ok(Conversation {
         role: String::from("assistant"),
         content,
     });
 }
+
+lazy_static! {
+    static ref AI_CONTEXT: Arc<RwLock<HashMap<String, Arc<Mutex<Vec<Conversation>>>>>> =
+        Arc::new(RwLock::new(HashMap::new()));
+}
+
+fn add_context(user_id: &str, conversation: Conversation) -> Vec<Conversation> {
+    // let mut conversations = AI_CONTEXT.lock().as_mut().unwrap();
+    // conversations.push(conversation);
+    let ctx = Arc::clone(&AI_CONTEXT);
+    if ctx
+        .read()
+        .expect("RwLock read poisoned")
+        .get(user_id)
+        .is_none()
+    {
+        ctx.write()
+            .expect("RwLock write poisoned")
+            .insert(user_id.to_string(), Arc::new(Mutex::new(Vec::new())));
+    }
+
+    let conversations = Arc::clone(
+        &ctx.read()
+            .expect("RwLock read poisoned")
+            .get(user_id)
+            .expect("该用户不存在会话！"),
+    );
+    let mut conversations = conversations.lock().unwrap();
+    conversations.push(conversation);
+    // println!("{:?}", conversations);
+    conversations.to_vec()
+}
 #[async_trait]
 pub trait AI {
-    async fn process_text(ask: &str) -> String {
-        let conversations = vec![Conversation {
+    async fn process_text(user_id: &str, ask: &str) -> String {
+        let conversation = Conversation {
             role: String::from("user"),
             content: String::from(ask),
-        }];
-        wx_chat(&conversations)
+        };
+
+        {
+            let ctx = Arc::clone(&AI_CONTEXT);
+
+            if ctx
+                .read()
+                .expect("RwLock read poisoned")
+                .get(user_id)
+                .is_none()
+            {
+                println!("AAA");
+                ctx.write()
+                    .expect("RwLock write poisoned")
+                    .insert(user_id.to_string(), Arc::new(Mutex::new(Vec::new())));
+            } else {
+                println!("BBB");
+                let ctx = ctx.read().expect("RwLock read poisoned");
+                // 判断是否已经有一个话题在进行了
+                let context_vec = ctx.get(user_id).unwrap();
+
+                // 下面两行如果连到一起，锁的生命周期只有一行代码，无法保证并发
+                // 分离开来，mutex变量会保护vec直到其作用域结束
+                let mutex = context_vec.lock().unwrap();
+                let role = mutex.last().unwrap().role.clone();
+                println!("{}", role);
+                if role.contains("user") {
+                    return String::from("别急，让我思考一会儿~");
+                }
+            }
+        }
+
+        let conversations = add_context(user_id, conversation);
+        let content = wx_chat(&conversations)
             .await
             .unwrap()
             .content
             .trim_matches('\"')
-            .to_string()
+            .to_string();
+        let conversation = Conversation {
+            role: String::from("assistant"),
+            content: content.clone(),
+        };
+        add_context(user_id, conversation);
+        content
     }
 }
 

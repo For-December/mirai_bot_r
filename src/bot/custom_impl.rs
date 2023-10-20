@@ -133,7 +133,7 @@ impl MyBot {
             msg += &summary(sender.get_group().id.to_string().as_str());
             println!("#######################\n{}\n#####################", msg);
 
-            let ans = Self::process_text(&msg)
+            let ans = Self::process_text(&sender.get_id(), &msg)
                 .await
                 .replace("\\n", "\n")
                 .replace("\\", "");
@@ -148,10 +148,13 @@ impl MyBot {
     }
 
     pub async fn ai_chat(message_chain: Vec<Message>, sender: GroupSender) -> bool {
-        let ans = MyBot::process_text(message_chain[1].text.as_ref().unwrap().as_str())
-            .await
-            .replace("\\n", "\n")
-            .replace("\\", "");
+        let ans = MyBot::process_text(
+            &sender.get_id(),
+            message_chain[1].text.as_ref().unwrap().as_str(),
+        )
+        .await
+        .replace("\\n", "\n")
+        .replace("\\", "");
         let ans = MessageChain::new()
             .build_target(sender.get_group().id.to_string().as_str())
             .build_at(sender.get_id())
