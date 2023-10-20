@@ -45,6 +45,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0942ffc6dcaadf03badf6e6a2d0228460359d5e34b57ccdc720b7382dfbd5ec5"
 
 [[package]]
+name = "async-lazy"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f8537ff82429d7272fa9b4368466c064825d6763cfbe4f72857642d7d0852b59"
+dependencies = [
+ "tokio",
+]
+
+[[package]]
 name = "async-trait"
 version = "0.1.74"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -54,12 +63,6 @@ dependencies = [
  "quote",
  "syn 2.0.37",
 ]
-
-[[package]]
-name = "async_once"
-version = "0.2.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ce4f10ea3abcd6617873bae9f91d1c5332b4a778bd9ce34d0cd517474c1de82"
 
 [[package]]
 name = "atoi"
@@ -926,8 +929,8 @@ dependencies = [
 name = "mirai_bot"
 version = "0.1.0"
 dependencies = [
+ "async-lazy",
  "async-trait",
- "async_once",
  "chatgpt_rs",
  "dotenvy",
  "lazy_static",

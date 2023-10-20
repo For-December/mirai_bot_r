@@ -19,7 +19,7 @@ use std::{
 
 #[async_trait]
 impl EventHandler for MyBot {
-    async fn handle_group_event(&'static self, message_chain: &MessageChain, sender: &GroupSender) {
+    async fn handle_group_event(&'static self, message_chain: MessageChain, sender: GroupSender) {
         // let m = MessageChain::new()
         //     .build_target("902907141")
         //     .build_text("测试123");
@@ -43,9 +43,11 @@ impl EventHandler for MyBot {
         }
 
         let group_num = sender.get_group().id.to_string();
-        let temp_chain = message_chain.clone();
-        let temp_sender = sender.clone();
-        tokio::task::spawn(async move { accumulate_msg(temp_chain, temp_sender).await });
+
+        // 用于总结的记录
+        tokio::task::spawn(accumulate_msg(message_chain.clone(), sender.clone()));
+        // 用于偷听的记录
+        tokio::task::spawn(chat_listen(message_chain.clone(), sender.clone()));
 
         // if self.say_or_not_instruction(&message_chain, &group_num) {
         // return;
@@ -55,7 +57,6 @@ impl EventHandler for MyBot {
         //     return;
         // }
 
-        // chat_listen(&message_chain, &sender);
         // if !sender.get_group().id.to_string().eq(&APP_CONF.bot_group) {
         //     return;
         // }

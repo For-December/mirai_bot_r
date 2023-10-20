@@ -1,5 +1,9 @@
-use std::process::exit;
+use std::{
+    process::exit,
+    sync::{Arc, Mutex},
+};
 
+use lazy_static::lazy_static;
 use rand::{thread_rng, Rng};
 use regex::Regex;
 
@@ -170,87 +174,116 @@ impl MyBot {
         return true;
     }
 }
-static mut GLOBAL_MSG: Vec<(String, Vec<Message>)> = Vec::new();
+lazy_static! {
+    static ref GLOBAL_MSG: Arc<Mutex<Vec<(String, Vec<Message>)>>> =
+        Arc::new(Mutex::new(Vec::new()));
+}
 
-pub fn chat_listen(message_chain: &Vec<Message>, sender: &GroupSender) {
-    unsafe {
-        match GLOBAL_MSG.len() {
-            0 => GLOBAL_MSG.push((sender.get_id(), message_chain.to_vec())),
-            1 => {
-                let ask = GLOBAL_MSG.pop().unwrap();
-                let answer = {
-                    for ele in message_chain {
-                        let text_len = utf8_slice::len(&ele.text.clone().unwrap_or_default());
-
-                        // 有过长的消息（小作文），则概率记录
-                        if text_len > 120 {
-                            return; // 小作文大于 120 直接不记录
-                        }
-
-                        // [0-120) [51-120)
-                        // 不记录概率 51/120 ~ 119/120
-                        // 记录概率 69/120 ~ 1/120
-                        if text_len > 50 && thread_rng().gen_range(0..120) < text_len {
-                            return;
-                        }
-                    }
-                    (sender.get_id(), message_chain.to_vec())
-                };
-                // println!("ask:{:#?}\n answer:{:#?}", ask, answer);
-                for ele in ask.1 {
-                    match ele._type.as_str() {
-                        "Plain" => {
-                            let ask_text = ele.text.unwrap();
-                            let mut ask_text = ask_text.as_str();
-                            if utf8_slice::len(ask_text) > 255 {
-                                ask_text = utf8_slice::slice(ask_text, 0, 255);
-                            }
-                            set_ask_answer(
-                                ask_text,
-                                sender.get_group().id.to_string().as_str(),
-                                &ask.0,
-                                &answer.0,
-                                &answer.1,
-                            )
-                        }
-                        "Image" => set_ask_answer(
-                            &ele.image_id.unwrap(),
-                            sender.get_group().id.to_string().as_str(),
-                            &ask.0,
-                            &answer.0,
-                            &answer.1,
-                        ),
-                        _ => return,
-                    }
-                }
-            }
-            _ => panic!("预期之外的消息数！"),
+pub async fn get_ask(
+    message_chain: &Vec<Message>,
+    sender: &GroupSender,
+) -> Option<(String, Vec<Message>)> {
+    let global_msg = Arc::clone(&GLOBAL_MSG);
+    let mut global_msg = global_msg.lock().unwrap();
+    match global_msg.len() {
+        0 => {
+            global_msg.push((sender.get_id(), message_chain.to_vec()));
+            None
         }
+        1 => global_msg.pop(),
+        _ => panic!("预期之外的消息数！"),
     }
+}
+pub async fn chat_listen(message_chain: Vec<Message>, sender: GroupSender) {
+    let ask = get_ask(&message_chain, &sender).await;
+    if let Some(ask) = ask {
+        let answer = {
+            let mut new_message_chain = Vec::<Message>::new();
+            for mut ele in message_chain {
+                let text_len = utf8_slice::len(&ele.text.clone().unwrap_or_default());
+                // 有过长的消息（小作文），则概率记录
+                if text_len > 120 {
+                    continue; // 小作文大于 120 直接不记录
+                }
+
+                // [0-120) [51-120)
+                // 不记录概率 51/120 ~ 119/120
+                // 记录概率 69/120 ~ 1/120
+                if text_len > 50 && thread_rng().gen_range(0..120) < text_len {
+                    continue;
+                }
+                // 所有imgId清空
+                ele.image_id = None;
+                new_message_chain.push(ele);
+            }
+            (sender.get_id(), new_message_chain.to_vec())
+        };
+        // println!("ask:{:#?}\n answer:{:#?}", ask, answer);
+        for ele in ask.1 {
+            match ele._type.as_str() {
+                "Plain" => {
+                    let ask_text = ele.text.unwrap();
+                    let mut ask_text = ask_text.as_str();
+                    if utf8_slice::len(ask_text) > 255 {
+                        ask_text = utf8_slice::slice(ask_text, 0, 255);
+                    }
+                    set_ask_answer(
+                        ask_text,
+                        &sender.get_group().id.to_string(),
+                        &ask.0,
+                        &answer.0,
+                        &answer.1,
+                    )
+                    .await;
+                }
+                "Image" => {
+                    set_ask_answer(
+                        ele.image_id.unwrap().as_str(),
+                        &sender.get_group().id.to_string(),
+                        &ask.0,
+                        &answer.0,
+                        &answer.1,
+                    )
+                    .await;
+                }
+                _ => return,
+            }
+        }
+    } else {
+        return;
+    }
+    // match global_msg.len() {
+    //     0 => global_msg.push((sender.get_id(), message_chain.to_vec())),
+    //     1 => {
+    //         let ask = global_msg.pop().unwrap();
+    //
+    //     }
+    //     _ => panic!("预期之外的消息数！"),
+    // }
 }
 
 pub fn try_answer(ask: &Vec<Message>, bot: &MyBot, group_num: &str) {
     // if thread_rng().gen_range(0..10) < 6 {
     // return;
     // }
-    for ele in ask {
-        match ele._type.as_str() {
-            // "Plain" | "Image" => (),
-            "Plain" => match get_nearest_answer(ele.text.as_ref().unwrap(), group_num) {
-                Some(answer) => {
-                    println!("搜到答案，尝试回复！");
-                    // bot.send_group_msg(group_num, &MessageChain::from(answer))
-                }
-                None => println!("未找到Plain"),
-            },
-            "Image" => match get_nearest_answer(ele.image_id.as_ref().unwrap(), group_num) {
-                Some(answer) => {
-                    println!("搜到答案，尝试回复！");
-                    // bot.send_group_msg(group_num, &MessageChain::from(answer))
-                }
-                None => println!("未找到Image"),
-            },
-            _ => (),
-        }
-    }
+    // for ele in ask {
+    //     match ele._type.as_str() {
+    //         // "Plain" | "Image" => (),
+    //         "Plain" => match get_nearest_answer(ele.text.as_ref().unwrap(), group_num) {
+    //             Some(answer) => {
+    //                 println!("搜到答案，尝试回复！");
+    //                 // bot.send_group_msg(group_num, &MessageChain::from(answer))
+    //             }
+    //             None => println!("未找到Plain"),
+    //         },
+    //         "Image" => match get_nearest_answer(ele.image_id.as_ref().unwrap(), group_num) {
+    //             Some(answer) => {
+    //                 println!("搜到答案，尝试回复！");
+    //                 // bot.send_group_msg(group_num, &MessageChain::from(answer))
+    //             }
+    //             None => println!("未找到Image"),
+    //         },
+    //         _ => (),
+    //     }
+    // }
 }

@@ -4,7 +4,7 @@ use serde_json::Value;
 use super::{group::GroupSender, message::MessageChain};
 #[async_trait]
 pub trait EventHandler {
-    async fn handle_group_event(&'static self, message_chain: &MessageChain, sender: &GroupSender);
+    async fn handle_group_event(&'static self, message_chain: MessageChain, sender: GroupSender);
     async fn handle_nudge_event(&'static self, from_id: &String, target: &String, subject: &Value);
 }
 

@@ -1,5 +1,6 @@
+use async_lazy::Lazy;
 use serde_json::Value;
-use sqlx::{types::time::PrimitiveDateTime, FromRow, MySqlPool};
+use sqlx::{types::time::PrimitiveDateTime, FromRow, MySql, MySqlPool, Pool};
 
 use crate::bot::message::Message;
 
@@ -14,6 +15,27 @@ struct AskAnswer {
     pub update_time: Option<PrimitiveDateTime>,
     pub create_time: Option<PrimitiveDateTime>,
 }
+
+static MYSQL_POOL: Lazy<Pool<MySql>> = Lazy::const_new(|| {
+    Box::pin(async {
+        let database_url = get_url();
+        MySqlPool::connect(&database_url).await.unwrap()
+    })
+});
+
+// lazy_static! {
+//     static ref MYSQL_POOL:Pool<MySql> = async{
+
+//         let database_url = get_url();
+//         // tokio::runtime::Builder::new_multi_thread()
+//         //     .enable_all()
+//         //     .build()
+//         //     .unwrap()
+//         //     .block_on(async {
+//         // println!("{}",m);
+//         MySqlPool::connect(&database_url).await.unwrap()
+//     };
+// }
 fn get_url() -> String {
     let database_url: Option<String> = (|| -> Option<String> {
         for ele in dotenvy::dotenv_iter().expect("读取.env 文件失败") {
@@ -26,42 +48,33 @@ fn get_url() -> String {
     })();
     database_url.expect("请配置DATABASE_URL")
 }
-pub fn get_nearest_answer(ask: &str, group_id: &str) -> Option<Vec<Message>> {
-    let database_url = get_url();
-    let res = tokio::runtime::Builder::new_multi_thread()
-        .enable_all()
-        .build()
-        .unwrap()
-        .block_on(async {
-            // println!("{}",m);
-            let pool = MySqlPool::connect(&database_url).await.unwrap();
-            // 原来之前的报错是返回值类型不匹配啊，没有解包
-            let res: AskAnswer = sqlx::query_as!(
+pub async fn get_nearest_answer(ask: &str, group_id: &str) -> Option<Vec<Message>> {
+    // 原来之前的报错是返回值类型不匹配啊，没有解包
+    let res: AskAnswer = sqlx::query_as!(
             AskAnswer,// LEVENSHTEIN
              "SELECT id,group_id,asker_id,replier_id,ask_text, answer,create_time,update_time FROM ask_answer WHERE LEVENSHTEIN(?,ask_text) < 2 AND group_id = ? ORDER BY RAND() LIMIT 1", // ascending&descending
              ask,group_id)
-            .fetch_one(&pool)
-            .await
-            .unwrap_or_default();
+    .fetch_one(MYSQL_POOL.force().await)
+    .await
+    .unwrap_or_default();
 
-            match res.answer {
-                Some(answer) => {
-                    let res: Vec<Message> = serde_json::from_value(answer)
-                        .unwrap_or_else(|_| panic!("解析messageChain失败"));
-                    return Some(res);
-                }
-                None => {
-                    // println!("{:#?}", res);
-                    return None;
-                }
-            }
-        });
-    res
+    // res:
+    match res.answer {
+        Some(answer) => {
+            let res: Vec<Message> =
+                serde_json::from_value(answer).unwrap_or_else(|_| panic!("解析messageChain失败"));
+            return Some(res);
+        }
+        None => {
+            // println!("{:#?}", res);
+            return None;
+        }
+    }
     // println!("{:#?}", res);
     // Ok(res)
 }
 
-pub fn set_ask_answer(
+pub async fn set_ask_answer(
     ask: &str,
     group_id: &str,
     asker_id: &str,
@@ -69,27 +82,19 @@ pub fn set_ask_answer(
     answer: &Vec<Message>,
 ) {
     let answer = serde_json::to_value(answer).unwrap();
-    let database_url = get_url();
-    tokio::runtime::Builder::new_multi_thread()
-        .enable_all()
-        .build()
-        .unwrap()
-        .block_on(async {
-            // println!("{}",m);
-            let pool = MySqlPool::connect(&database_url).await.unwrap();
-            // 原来之前的报错是返回值类型不匹配啊，没有解包
-            sqlx::query!(
-                "INSERT INTO ask_answer(group_id,asker_id,replier_id,ask_text,answer) VALUES(?,?,?,?,?)",
-                group_id,
-                asker_id,
-                replier_id,
-                ask,
-                answer,
-            )
-            .execute(&pool)
-            .await
-            .expect("添加失败！");
-        });
+    // 原来之前的报错是返回值类型不匹配啊，没有解包
+    sqlx::query!(
+        "INSERT INTO ask_answer(group_id,asker_id,replier_id,ask_text,answer) VALUES(?,?,?,?,?)",
+        group_id,
+        asker_id,
+        replier_id,
+        ask,
+        answer,
+    )
+    .execute(MYSQL_POOL.force().await)
+    .await
+    .expect("添加失败！");
+    // });
     println!("数据添加成功, ask:{}", ask);
 }
 
@@ -120,16 +125,16 @@ mod test {
         pub data: Option<PrimitiveDateTime>,
     }
 
-    #[test]
-    pub fn test_ask_answer() {
-        // let res = get_nearest_answer("别急").unwrap();
+    #[tokio::test]
+    pub async fn test_ask_answer() {
+        // let res = get_nearest_answer("别急","").unwrap();
         // println!("{:#?}", res);
-        // let ask = "好好呀好";
-        // let asker_id = "1921567337";
-        // let replier_id = "1921567337";
-        // let answer = MessageChain::new().build_text("文本消息");
-        // let answer = answer.get_message_chain();
-        // set_ask_answer(ask, asker_id, replier_id, answer)
+        let ask = "好好呀好";
+        let asker_id = "1921567337";
+        let replier_id = "1921567337";
+        let answer = MessageChain::new().build_text("文本消息");
+        let answer = answer.get_message_chain();
+        set_ask_answer(ask, "test", asker_id, replier_id, answer).await;
     }
 
     #[test]

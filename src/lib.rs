@@ -26,6 +26,7 @@ lazy_static! {
 
 // impl AI for MyBot {}
 pub async fn run() -> Result<(), Box<dyn std::error::Error>> {
+    //init
     MY_BOT.set(MyBot::build().await?).unwrap();
     println!("{:#?}", MY_BOT.get().unwrap());
     let (sender, mut receiver): (Sender<MessageChain>, Receiver<MessageChain>) = mpsc::channel(32);
@@ -53,7 +54,7 @@ pub async fn run() -> Result<(), Box<dyn std::error::Error>> {
                     MY_BOT
                         .get()
                         .unwrap()
-                        .handle_group_event(&message_chain, &sender)
+                        .handle_group_event(message_chain, sender)
                         .await;
                 });
             }
