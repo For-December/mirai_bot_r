@@ -8,7 +8,7 @@ use rand::{thread_rng, Rng};
 use regex::Regex;
 
 use crate::{
-    api::wx_chat::AI,
+    api::chatgpt::AI,
     bot::{
         bot_trait::{BotAction, GroupAdmin},
         message::MessageChain,
