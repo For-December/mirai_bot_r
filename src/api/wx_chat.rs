@@ -1,12 +1,13 @@
+use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 use crate::setup::conf::APP_CONF;
-use std::collections::HashMap;
+use std::{collections::HashMap, process};
 
 use super::web_utils::post_utils;
 
-fn get_access_token() -> String {
+async fn get_access_token() -> String {
     // 查询参数
     let mut query = HashMap::new();
     query.insert("grant_type", "client_credentials");
@@ -22,7 +23,11 @@ fn get_access_token() -> String {
         query,
         headers,
     )
-    .unwrap();
+    .await
+    .unwrap_or_else(|err| {
+        println!("get access token error: {err}");
+        process::exit(0);
+    });
     let res: Value = serde_json::from_str(&res).unwrap();
     let res = res["access_token"]
         .to_string()
@@ -37,16 +42,18 @@ pub struct Conversation {
     role: String,
     content: String,
 }
-fn wx_chat(conversations: &Vec<Conversation>) -> Result<Conversation, Box<dyn std::error::Error>> {
+async fn wx_chat(
+    conversations: &Vec<Conversation>,
+) -> Result<Conversation, Box<dyn std::error::Error>> {
     let url = String::from("https://aip.baidubce.com/")
         + "rpc/2.0/ai_custom/v1/wenxinworkshop/chat/eb-instant?"
         + "access_token="
-        + get_access_token().as_str();
+        + get_access_token().await.as_str();
     let json = json!({
         "messages":*conversations
     })
     .to_string();
-    let res = post_utils(json, &url, HashMap::new(), HashMap::new()).unwrap();
+    let res = post_utils(json, &url, HashMap::new(), HashMap::new()).await?;
     let answer: Value = serde_json::from_str(&res)?;
     let content = answer["result"].to_string();
     return Ok(Conversation {
@@ -54,13 +61,15 @@ fn wx_chat(conversations: &Vec<Conversation>) -> Result<Conversation, Box<dyn st
         content,
     });
 }
+#[async_trait]
 pub trait AI {
-    fn process_text(&self, ask: &str) -> String {
+    async fn process_text(ask: &str) -> String {
         let conversations = vec![Conversation {
             role: String::from("user"),
             content: String::from(ask),
         }];
         wx_chat(&conversations)
+            .await
             .unwrap()
             .content
             .trim_matches('\"')

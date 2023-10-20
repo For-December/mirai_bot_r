@@ -49,6 +49,14 @@ impl EventHandler for MyBot {
         // 用于偷听的记录
         tokio::task::spawn(chat_listen(message_chain.clone(), sender.clone()));
 
+        if message_chain.len() == 2
+            && message_chain[0]._type.eq("At")
+            && message_chain[1]._type.eq("Plain")
+            && message_chain[0].target.unwrap().to_string().eq(&self.qq)
+        {
+            tokio::task::spawn(Self::ai_chat(message_chain.clone(), sender.clone()));
+        }
+
         // if self.say_or_not_instruction(&message_chain, &group_num) {
         // return;
         // }

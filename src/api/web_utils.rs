@@ -1,13 +1,16 @@
-use std::{collections::HashMap, str::FromStr};
+use std::{collections::HashMap, process, str::FromStr};
 
-use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
+use reqwest::{
+    header::{HeaderMap, HeaderName, HeaderValue},
+    StatusCode,
+};
 
-pub fn post_utils(
+pub async fn post_utils(
     json: String,
     url: &str,
     query: HashMap<&str, &str>,
     headers: HashMap<&str, &str>,
-) -> Result<String, Box<dyn std::error::Error>> {
+) -> Result<String, String> {
     let mut header_map = HeaderMap::new();
     headers.iter().for_each(|(k, v)| {
         header_map.insert(
@@ -15,17 +18,35 @@ pub fn post_utils(
             HeaderValue::from_str(*v).unwrap(),
         );
     });
-    let req = reqwest::blocking::Client::new()
+    let res = reqwest::Client::new()
         .post(url)
         .query(&query)
-        .body(json)
-        .headers(header_map);
+        .body(json.clone())
+        .headers(header_map.clone())
+        .send()
+        .await
+        .unwrap_or_else(|err| {
+            println!("POST req error: {err}");
+            println!("POST url is {url}");
+            println!("headers are {:#?}", header_map);
+            println!("Body json is {json}");
+            println!("query is {:#?}", query);
+            process::exit(1);
+        });
+
+    match res.status() {
+        StatusCode::OK => {
+            let res = res.text().await.unwrap();
+            Ok(res)
+        }
+        code => Err(format!("RESPONSE error code: {}", code)),
+    }
 
     // println!("{:#?}",req);
-    let res = req.send()?.text()?;
+    // let res = req.send().await?.text()?;
     // let v: Value = serde_json::from_str(&res)?;
     // println!("{:#?}", v);
-    Ok(res)
+    // Ok(res)
 }
 
 // pub fn get_utils(

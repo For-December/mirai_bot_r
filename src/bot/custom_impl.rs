@@ -16,6 +16,7 @@ use crate::{
     },
     database::mysql::{get_nearest_answer, set_ask_answer},
     setup::conf::APP_CONF,
+    SENDER,
 };
 
 use super::{group::GroupSender, message::Message, my_bot::MyBot};
@@ -112,7 +113,7 @@ impl MyBot {
         return false;
     }
 
-    pub fn summary_instruction(
+    pub async fn summary_instruction(
         &'static self,
         message_chain: &Vec<Message>,
         sender: &GroupSender,
@@ -132,8 +133,8 @@ impl MyBot {
             msg += &summary(sender.get_group().id.to_string().as_str());
             println!("#######################\n{}\n#####################", msg);
 
-            let ans = self
-                .process_text(&msg)
+            let ans = Self::process_text(&msg)
+                .await
                 .replace("\\n", "\n")
                 .replace("\\", "");
             let ans = MessageChain::new()
@@ -146,31 +147,21 @@ impl MyBot {
         return false;
     }
 
-    pub fn ai_chat(&self, message_chain: &Vec<Message>, sender: &GroupSender) -> bool {
-        if message_chain.len() != 2 {
-            return false; // 表示该指令未运行
-        }
-
-        if !message_chain[0]._type.eq("At")
-            || !message_chain[1]._type.eq("Plain")
-            || !message_chain[0].target.unwrap().to_string().eq(&self.qq)
-        {
-            return false;
-        }
-        let ans = self
-            .process_text(message_chain[1].text.as_ref().unwrap().as_str())
+    pub async fn ai_chat(message_chain: Vec<Message>, sender: GroupSender) -> bool {
+        let ans = MyBot::process_text(message_chain[1].text.as_ref().unwrap().as_str())
+            .await
             .replace("\\n", "\n")
             .replace("\\", "");
         let ans = MessageChain::new()
+            .build_target(sender.get_group().id.to_string().as_str())
             .build_at(sender.get_id())
             .build_text(&ans);
+        SENDER.clone().get().unwrap().send(ans).await.unwrap();
         // let mut tf = aitaffy(&ans);
         // let mut voice = MessageChain::new();
         // tf.iter_mut().for_each(|add|{
         //     voice.build_voice(add);
         // });
-
-        // self.send_group_msg(sender.get_group().id.to_string().as_ref(), &ans);
         return true;
     }
 }
