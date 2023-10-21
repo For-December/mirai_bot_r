@@ -8,7 +8,7 @@ use rand::{thread_rng, Rng};
 use regex::Regex;
 
 use crate::{
-    api::chatgpt::AI,
+    api::wx_chat::AI,
     bot::{
         bot_trait::{BotAction, GroupAdmin},
         message::MessageChain,
@@ -148,8 +148,34 @@ impl MyBot {
     }
 
     pub async fn ai_chat(message_chain: Vec<Message>, sender: GroupSender) -> bool {
+        // if MyBot::debug(
+        //     &sender.get_member_name(),
+        //     message_chain[1].text.as_ref().unwrap().as_str(),
+        // )
+        // .await
+        // {
+        //     return true;
+        // }
+        if MyBot::forget(
+            &sender.get_member_name(),
+            message_chain[1].text.as_ref().unwrap().as_str(),
+        )
+        .await
+        {
+            let ans = MessageChain::new()
+                .build_target(sender.get_group().id.to_string().as_str())
+                .build_at(sender.get_id())
+                .build_text("我已经忘掉了之前的故事，让我们重新开始吧~");
+            SENDER.clone().get().unwrap().send(ans).await.unwrap();
+            return true;
+        }
+        MyBot::cat_girl(
+            &sender.get_member_name(),
+            message_chain[1].text.as_ref().unwrap().as_str(),
+        )
+        .await;
         let ans = MyBot::process_text(
-            &sender.get_id(),
+            &sender.get_member_name(),
             message_chain[1].text.as_ref().unwrap().as_str(),
         )
         .await
