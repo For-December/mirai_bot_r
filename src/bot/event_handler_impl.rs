@@ -1,6 +1,6 @@
 use super::{
     bot_trait::{BotAction, EventHandler},
-    custom_impl::{chat_listen, try_answer},
+    custom_impl::chat_listen,
     group::GroupSender,
     message::{Message, MessageChain},
     my_bot::MyBot,
@@ -11,11 +11,7 @@ use async_trait::async_trait;
 use rand::{thread_rng, Rng};
 
 use serde_json::Value;
-use std::{
-    sync::{Arc, Mutex},
-    thread,
-    time::Duration,
-};
+use std::{thread, time::Duration};
 
 #[async_trait]
 impl EventHandler for MyBot {
@@ -54,15 +50,15 @@ impl EventHandler for MyBot {
             && message_chain[1]._type.eq("Plain")
             && message_chain[0].target.unwrap().to_string().eq(&self.qq)
         {
+            if message_chain[1].text.as_ref().unwrap().contains("summary") {
+                tokio::task::spawn(Self::summary_instruction(group_num.clone(), sender.clone()));
+                return;
+            }
             tokio::task::spawn(Self::ai_chat(message_chain.clone(), sender.clone()));
         }
 
         // if self.say_or_not_instruction(&message_chain, &group_num) {
         // return;
-        // }
-
-        // if self.summary_instruction(&message_chain, sender) {
-        //     return;
         // }
 
         // if !sender.get_group().id.to_string().eq(&APP_CONF.bot_group) {

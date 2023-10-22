@@ -13,7 +13,7 @@ pub fn aitaffy(msg: &str) -> Vec<String> {
     res
 }
 pub fn aitaffy_origin(msg: &str) -> String {
-    let command = "aitaffy.py"; // 将要执行的 cmd 命令
+    let command = "ainingning.py"; // 将要执行的 cmd 命令
 
     let output = Command::new("py")
         .args(&[command, msg])
@@ -34,7 +34,7 @@ pub fn aitaffy_origin(msg: &str) -> String {
 
 #[cfg(test)]
 mod test {
-    // use super::aitaffy;
+    use super::aitaffy;
 
     #[test]
     pub fn test_api() {

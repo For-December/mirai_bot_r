@@ -75,7 +75,7 @@ lazy_static! {
         Arc::new(RwLock::new(HashMap::new()));
 }
 
-fn add_context(user_id: &str, conversation: Conversation) -> Vec<Conversation> {
+fn add_context(user_id: &str, conversation: Conversation) -> Option<Vec<Conversation>> {
     // let mut conversations = AI_CONTEXT.lock().as_mut().unwrap();
     // conversations.push(conversation);
     let ctx = Arc::clone(&AI_CONTEXT);
@@ -97,9 +97,16 @@ fn add_context(user_id: &str, conversation: Conversation) -> Vec<Conversation> {
             .expect("该用户不存在会话！"),
     );
     let mut conversations = conversations.lock().unwrap();
+    // 在这里解决并发问题
+    if let Some(conv) = conversations.last() {
+        if conv.role.eq(&conversation.role) {
+            return None;
+        }
+    }
+
     conversations.push(conversation);
     // println!("{:?}", conversations);
-    conversations.to_vec()
+    Some(conversations.to_vec())
 }
 fn clear_context(user_id: &str) {
     let ctx = Arc::clone(&AI_CONTEXT);
@@ -116,6 +123,16 @@ fn clear_context(user_id: &str) {
 
 #[async_trait]
 pub trait AI {
+    async fn debug(user_id: &str, ask: &str) -> bool {
+        if ask.contains("#debug") {
+            let content = Arc::clone(&AI_CONTEXT);
+            let resp = content.read().unwrap();
+            // .send_message(ask).await.unwrap();
+            println!("历史记录\n{:#?}", resp);
+            return true;
+        }
+        return false;
+    }
     async fn forget(user_id: &str, ask: &str) -> bool {
         if ask.contains("失忆") {
             clear_context(user_id);
@@ -175,7 +192,9 @@ pub trait AI {
             } else {
                 println!("BBB");
                 let ctx = ctx.read().expect("RwLock read poisoned");
+
                 // 判断是否已经有一个话题在进行了
+                // 这里应该是尝试获取锁
                 let context_vec = ctx.get(user_id).unwrap();
 
                 // 下面两行如果连到一起，锁的生命周期只有一行代码，无法保证并发
@@ -190,7 +209,10 @@ pub trait AI {
         }
 
         let conversations = add_context(user_id, conversation);
-        let content = wx_chat(&conversations)
+        if conversations.is_none() {
+            return String::from("别急，让我思考一会儿~");
+        }
+        let content = wx_chat(&conversations.unwrap())
             .await
             .unwrap()
             .content

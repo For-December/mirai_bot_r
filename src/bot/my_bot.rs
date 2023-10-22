@@ -2,11 +2,7 @@ use crate::{api::wx_chat::AI, setup::conf::APP_CONF};
 
 use super::{event::Event, group::GroupSender, message::Message, message::MessageChain};
 use serde_json::{json, Value};
-use std::{
-    collections::HashMap,
-    process,
-    sync::{Arc, Mutex},
-};
+use std::{collections::HashMap, process};
 
 #[derive(Debug)]
 pub struct MyBot {

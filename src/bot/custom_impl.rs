@@ -8,12 +8,8 @@ use rand::{thread_rng, Rng};
 use regex::Regex;
 
 use crate::{
-    api::wx_chat::AI,
-    bot::{
-        bot_trait::{BotAction, GroupAdmin},
-        message::MessageChain,
-        summary_msg::summary,
-    },
+    api::{aitaffy::aitaffy, wx_chat::AI},
+    bot::{message::MessageChain, summary_msg::summary},
     database::mysql::{get_nearest_answer, set_ask_answer},
     setup::conf::APP_CONF,
     SENDER,
@@ -113,51 +109,36 @@ impl MyBot {
         return false;
     }
 
-    pub async fn summary_instruction(
-        &'static self,
-        message_chain: &Vec<Message>,
-        sender: &GroupSender,
-    ) -> bool {
-        if message_chain.len() != 2 {
-            return false; // 表示该指令未运行
-        }
+    pub async fn summary_instruction(group_num: String, sender: GroupSender) -> bool {
+        let mut msg = String::from(
+            "下面是用户对话，格式为`昵称: 说话内容`，请帮我提取和总结其中的关键信息：\n",
+        );
+        msg += &summary(sender.get_group().id.to_string().as_str());
+        println!("#######################\n{}\n#####################", msg);
 
-        if message_chain[0]._type.eq("At")
-            && message_chain[1]._type.eq("Plain")
-            && message_chain[0].target.unwrap().to_string().eq(&self.qq)
-            && message_chain[1].text.as_ref().unwrap().contains("summary")
-        {
-            let mut msg = String::from(
-                "下面是用户对话，格式为`昵称: 说话内容`，请帮我提取和总结其中的关键信息：\n",
-            );
-            msg += &summary(sender.get_group().id.to_string().as_str());
-            println!("#######################\n{}\n#####################", msg);
-
-            let ans = Self::process_text(&sender.get_id(), &msg)
-                .await
-                .replace("\\n", "\n")
-                .replace("\\", "");
-            let ans = MessageChain::new()
-                .build_at(sender.get_id())
-                .build_text(&ans);
-
-            // self.send_group_msg(sender.get_group().id.to_string().as_ref(), &ans);
-            return true;
-        }
-        return false;
+        let ans = Self::process_text(&sender.get_id(), &msg)
+            .await
+            .replace("\\n", "\n")
+            .replace("\\", "");
+        let ans = MessageChain::new()
+            .build_target(&group_num)
+            .build_at(sender.get_id())
+            .build_text(&ans);
+        SENDER.clone().get().unwrap().send(ans).await.unwrap();
+        return true;
     }
 
     pub async fn ai_chat(message_chain: Vec<Message>, sender: GroupSender) -> bool {
-        // if MyBot::debug(
-        //     &sender.get_member_name(),
-        //     message_chain[1].text.as_ref().unwrap().as_str(),
-        // )
-        // .await
-        // {
-        //     return true;
-        // }
+        if MyBot::debug(
+            &sender.get_id(),
+            message_chain[1].text.as_ref().unwrap().as_str(),
+        )
+        .await
+        {
+            return true;
+        }
         if MyBot::forget(
-            &sender.get_member_name(),
+            &sender.get_id(),
             message_chain[1].text.as_ref().unwrap().as_str(),
         )
         .await
@@ -170,22 +151,28 @@ impl MyBot {
             return true;
         }
         MyBot::cat_girl(
-            &sender.get_member_name(),
+            &sender.get_id(),
             message_chain[1].text.as_ref().unwrap().as_str(),
         )
         .await;
         let ans = MyBot::process_text(
-            &sender.get_member_name(),
+            &sender.get_id(),
             message_chain[1].text.as_ref().unwrap().as_str(),
         )
         .await
         .replace("\\n", "\n")
         .replace("\\", "");
+        // let temp = ans.clone();
         let ans = MessageChain::new()
             .build_target(sender.get_group().id.to_string().as_str())
             .build_at(sender.get_id())
             .build_text(&ans);
         SENDER.clone().get().unwrap().send(ans).await.unwrap();
+
+        // let voice = MessageChain::new()
+        //     .build_target(sender.get_group().id.to_string().as_str())
+        //     .build_voice(aitaffy(&temp).last().unwrap());
+        // SENDER.clone().get().unwrap().send(voice).await.unwrap();
         // let mut tf = aitaffy(&ans);
         // let mut voice = MessageChain::new();
         // tf.iter_mut().for_each(|add|{

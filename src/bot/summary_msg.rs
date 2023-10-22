@@ -1,10 +1,7 @@
 use std::{
     collections::{HashMap, VecDeque},
-    f32::consts::E,
     sync::{Arc, Mutex},
 };
-
-use crate::api::wx_chat::{self, Conversation};
 
 use super::{group::GroupSender, message::Message};
 use lazy_static::lazy_static;
