@@ -41,7 +41,7 @@ pub async fn run() -> Result<(), Box<dyn std::error::Error>> {
 
     loop {
         std::thread::sleep(Duration::from_secs(5));
-        let events = MY_BOT.get().unwrap().get_events(5).await.unwrap();
+        let events = MY_BOT.get().unwrap().get_events(3).await.unwrap();
         if events.is_none() {
             continue;
         }

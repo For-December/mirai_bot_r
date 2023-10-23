@@ -269,28 +269,44 @@ pub async fn chat_listen(message_chain: Vec<Message>, sender: GroupSender) {
     // }
 }
 
-pub fn try_answer(ask: &Vec<Message>, bot: &MyBot, group_num: &str) {
-    // if thread_rng().gen_range(0..10) < 6 {
-    // return;
-    // }
-    // for ele in ask {
-    //     match ele._type.as_str() {
-    //         // "Plain" | "Image" => (),
-    //         "Plain" => match get_nearest_answer(ele.text.as_ref().unwrap(), group_num) {
-    //             Some(answer) => {
-    //                 println!("搜到答案，尝试回复！");
-    //                 // bot.send_group_msg(group_num, &MessageChain::from(answer))
-    //             }
-    //             None => println!("未找到Plain"),
-    //         },
-    //         "Image" => match get_nearest_answer(ele.image_id.as_ref().unwrap(), group_num) {
-    //             Some(answer) => {
-    //                 println!("搜到答案，尝试回复！");
-    //                 // bot.send_group_msg(group_num, &MessageChain::from(answer))
-    //             }
-    //             None => println!("未找到Image"),
-    //         },
-    //         _ => (),
-    //     }
-    // }
+pub async fn try_answer(ask: Vec<Message>, group_num: String) {
+    if thread_rng().gen_range(0..10) < 6 {
+        return;
+    }
+    for ele in ask {
+        match ele._type.as_str() {
+            // "Plain" | "Image" => (),
+            "Plain" => {
+                match get_nearest_answer(ele.text.as_ref().unwrap(), group_num.as_str()).await {
+                    Some(answer) => {
+                        println!("搜到答案，尝试回复！");
+                        SENDER
+                            .clone()
+                            .get()
+                            .unwrap()
+                            .send(MessageChain::from(Some(group_num.clone()), answer))
+                            .await
+                            .unwrap();
+                    }
+                    None => println!("未找到Plain"),
+                }
+            }
+            "Image" => {
+                match get_nearest_answer(ele.image_id.as_ref().unwrap(), group_num.as_str()).await {
+                    Some(answer) => {
+                        println!("搜到答案，尝试回复！");
+                        SENDER
+                            .clone()
+                            .get()
+                            .unwrap()
+                            .send(MessageChain::from(Some(group_num.clone()), answer))
+                            .await
+                            .unwrap();
+                    }
+                    None => println!("未找到Image"),
+                }
+            }
+            _ => (),
+        }
+    }
 }

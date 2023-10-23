@@ -1,6 +1,6 @@
 use super::{
     bot_trait::{BotAction, EventHandler},
-    custom_impl::chat_listen,
+    custom_impl::{chat_listen, try_answer},
     group::GroupSender,
     message::{Message, MessageChain},
     my_bot::MyBot,
@@ -56,7 +56,10 @@ impl EventHandler for MyBot {
             }
             tokio::task::spawn(Self::ai_chat(message_chain.clone(), sender.clone()));
         }
-
+        tokio::task::spawn(try_answer(
+            message_chain.clone(),
+            sender.get_group().id.to_string(),
+        ));
         // if self.say_or_not_instruction(&message_chain, &group_num) {
         // return;
         // }
@@ -68,12 +71,6 @@ impl EventHandler for MyBot {
         // if thread_rng().gen_range(0..10) < 6 {
         //     return;
         // }
-
-        // try_answer(
-        //     &message_chain,
-        //     self,
-        //     sender.get_group().id.to_string().as_str(),
-        // );
     }
 
     async fn handle_nudge_event(&'static self, from_id: &String, target: &String, subject: &Value) {
