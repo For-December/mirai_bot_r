@@ -80,11 +80,14 @@ impl EventHandler for MyBot {
             //     return;
             // }
             let msg = MessageChain::new()
+                .build_target(subject["id"].to_string().as_str())
                 .build_at(String::from(from_id))
                 .build_text("别戳我！") // https://api.vvhan.com/api/acgimg
                 .build_img(String::from("https://t.mwm.moe/ycy"));
-            self.send_group_nudge(subject["id"].to_string(), from_id.clone());
+            SENDER.clone().get().unwrap().send(msg).await.unwrap();
             // self.send_group_msg(&subject["id"].to_string(), &msg);
+            self.send_group_nudge(subject["id"].to_string(), from_id.clone())
+                .await;
         }
     }
 }
