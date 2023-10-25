@@ -270,7 +270,7 @@ pub async fn chat_listen(message_chain: Vec<Message>, sender: GroupSender) {
 }
 
 pub async fn try_answer(ask: Vec<Message>, group_num: String) {
-    if thread_rng().gen_range(0..10) < 6 {
+    if thread_rng().gen_range(0..10) < 6 || !group_num.eq(APP_CONF.bot_group.as_str()) {
         return;
     }
     for ele in ask {

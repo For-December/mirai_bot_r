@@ -31,11 +31,12 @@ lazy_static! {
 ///
 /// * time - the time that user asks
 #[gpt_function]
-async fn get_current_time(time: String) -> Value {
+async fn get_current_time(time: String) -> Result<Value> {
     println!("AI uses param: {time}");
-    return Ok(json!({
+    let result: Value = json!({
         "time":"10:30"
-    }));
+    });
+    result
 }
 
 #[derive(Serialize)]
@@ -132,21 +133,23 @@ pub trait AI {
         // .send_message(ask).await.unwrap();
         let mut conversation = resp.unwrap();
 
-        // conversation.add_function(get_current_time()).unwrap();
+        conversation.add_function(get_current_time()).unwrap();
 
         let res = conversation
-            .send_message(ask)
+            .send_message_functions(ask)
             .await
             .unwrap()
-            .message()
-            .content
-            .clone();
-        res
+            .message_choices;
 
-        // println!("{}", res.len());
-        // // for ele in res {
-        // //     println!("{}", ele.message.content);
-        // // }
+        // res
+
+        println!("{}", res.len());
+        for ele in res {
+            println!("{}", ele.message.content);
+        }
+        String::new()
+
+        // res
 
         // println!("{:#?}", conversation.history);
         // String::new()

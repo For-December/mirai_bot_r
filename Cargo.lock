@@ -177,8 +177,7 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 [[package]]
 name = "chatgpt_rs"
 version = "1.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0c8a252c161b36850bd202c735a7f224710a67758d91220d50a3bfd38dd1c7fc"
+source = "git+https://github.com/Maxuss/chatgpt_rs?branch=function-invocation-fix#01a9a956457113d89e7a90217bcdf2d6e890147c"
 dependencies = [
  "async-recursion",
  "async-trait",
@@ -639,8 +638,7 @@ checksum = "6fb8d784f27acf97159b40fc4db5ecd8aa23b9ad5ef69cdd136d3bc80665f0c0"
 [[package]]
 name = "gpt_fn_macros"
 version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3de28e49624005eacf1e8a617586f6c9078a0359c5fc802a9caa6bf18c8a53d2"
+source = "git+https://github.com/Maxuss/chatgpt_rs?branch=function-invocation-fix#01a9a956457113d89e7a90217bcdf2d6e890147c"
 dependencies = [
  "darling 0.20.3",
  "proc-macro2",
