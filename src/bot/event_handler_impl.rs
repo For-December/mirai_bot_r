@@ -6,7 +6,7 @@ use super::{
     my_bot::MyBot,
     summary_msg::accumulate_msg,
 };
-use crate::{setup::conf::APP_CONF, SENDER};
+use crate::{api::bilibili, setup::conf::APP_CONF, SENDER};
 use async_trait::async_trait;
 use rand::{thread_rng, Rng};
 
@@ -52,6 +52,10 @@ impl EventHandler for MyBot {
         {
             if message_chain[1].text.as_ref().unwrap().contains("summary") {
                 tokio::task::spawn(Self::summary_instruction(group_num.clone(), sender.clone()));
+                return;
+            }
+            if message_chain[1].text.as_ref().unwrap().contains("animes") {
+                tokio::task::spawn(Self::bilibili_instruction(sender.clone()));
                 return;
             }
             tokio::task::spawn(Self::ai_chat(message_chain.clone(), sender.clone()));

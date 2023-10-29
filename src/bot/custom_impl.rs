@@ -1,4 +1,5 @@
 use std::{
+    f32::consts::E,
     process::exit,
     sync::{Arc, Mutex},
 };
@@ -8,7 +9,7 @@ use rand::{thread_rng, Rng};
 use regex::Regex;
 
 use crate::{
-    api::{aitaffy::aitaffy, wx_chat::AI},
+    api::{aitaffy::aitaffy, bilibili::get_latest_anime, wx_chat::AI},
     bot::{message::MessageChain, summary_msg::summary},
     database::mysql::{get_nearest_answer, set_ask_answer},
     setup::conf::APP_CONF,
@@ -107,6 +108,17 @@ impl MyBot {
             }
         }
         return false;
+    }
+
+    pub async fn bilibili_instruction(sender: GroupSender) -> bool {
+        let res = get_latest_anime().await;
+        let ans = MessageChain::new()
+            .build_target(sender.get_group().id.to_string().as_str())
+            .build_at(sender.get_id())
+            .build_text(res.first().unwrap().0.as_str());
+        SENDER.clone().get().unwrap().send(ans).await.unwrap();
+
+        return true;
     }
 
     pub async fn summary_instruction(group_num: String, sender: GroupSender) -> bool {
