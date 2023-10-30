@@ -6,12 +6,24 @@ use super::{
     my_bot::MyBot,
     summary_msg::accumulate_msg,
 };
-use crate::{api::bilibili, setup::conf::APP_CONF, SENDER};
+use crate::{api::bilibili, setup::conf::APP_CONF, MY_BOT, SENDER};
 use async_trait::async_trait;
 use rand::{thread_rng, Rng};
 
+use lazy_static::lazy_static;
 use serde_json::Value;
-use std::{thread, time::Duration};
+use std::{
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc, Mutex,
+    },
+    thread,
+    time::Duration,
+};
+
+lazy_static! {
+    static ref IS_MUTE: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
+}
 
 #[async_trait]
 impl EventHandler for MyBot {
@@ -50,6 +62,44 @@ impl EventHandler for MyBot {
             && message_chain[1]._type.eq("Plain")
             && message_chain[0].target.unwrap().to_string().eq(&self.qq)
         {
+            if message_chain[1].text.as_ref().unwrap().contains("active") {
+                let msg = MessageChain::new()
+                    .build_target(&group_num)
+                    .build_text("小A 开始活跃了！");
+                SENDER.clone().get().unwrap().send(msg).await.unwrap();
+                let is_mute = Arc::clone(&IS_MUTE);
+                is_mute.store(false, Ordering::Release);
+                return;
+            }
+
+            let is_mute = Arc::clone(&IS_MUTE);
+            if is_mute.load(Ordering::Acquire) {
+                return;
+            }
+
+            if message_chain[1].text.as_ref().unwrap().contains("mute") {
+                let msg = MessageChain::new()
+                    .build_target(&group_num)
+                    .build_text("小A 已沉默");
+                SENDER.clone().get().unwrap().send(msg).await.unwrap();
+                let is_mute = Arc::clone(&IS_MUTE);
+                is_mute.store(true, Ordering::Release);
+                return;
+            }
+            if message_chain[1]
+                .text
+                .as_ref()
+                .unwrap()
+                .contains("#poweroff")
+            {
+                let ans = MessageChain::new()
+                    .build_target(&group_num)
+                    .build_text("已关机");
+
+                SENDER.clone().get().unwrap().send(ans).await.unwrap();
+                std::process::exit(0);
+            }
+
             if message_chain[1].text.as_ref().unwrap().contains("summary") {
                 tokio::task::spawn(Self::summary_instruction(group_num.clone(), sender.clone()));
                 return;
@@ -59,6 +109,11 @@ impl EventHandler for MyBot {
                 return;
             }
             tokio::task::spawn(Self::ai_chat(message_chain.clone(), sender.clone()));
+        }
+
+        let is_mute = Arc::clone(&IS_MUTE);
+        if is_mute.load(Ordering::Acquire) {
+            return;
         }
         tokio::task::spawn(try_answer(
             message_chain.clone(),

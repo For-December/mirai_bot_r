@@ -19,94 +19,82 @@ use crate::{
 use super::{group::GroupSender, message::Message, my_bot::MyBot};
 
 impl MyBot {
-    pub fn say_or_not_instruction(
-        &mut self,
-        message_chain: &Vec<Message>,
-        group_num: &str,
-    ) -> bool {
-        if message_chain.len() != 2 {
-            return false; // 表示该指令未运行
-        }
-
-        if message_chain[0]._type.eq("At")
-            && message_chain[1]._type.eq("Plain")
-            && message_chain[0].target.unwrap().to_string().eq(&self.qq)
-        {
-            if message_chain[1].text.as_ref().unwrap().contains("#help") {
-                println!(
-                    "{} {}",
-                    message_chain[1].text.as_ref().unwrap(),
-                    message_chain[1].text.as_ref().unwrap().eq(" #help"),
-                );
-                let msg = MessageChain::new().build_text(
-                    r#"小A当前的指令如下:
+    pub async fn control_instrument(message_chain: &Vec<Message>, group_num: &str) -> bool {
+        if message_chain[1].text.as_ref().unwrap().contains("#help") {
+            println!(
+                "{} {}",
+                message_chain[1].text.as_ref().unwrap(),
+                message_chain[1].text.as_ref().unwrap().eq(" #help"),
+            );
+            let msg = MessageChain::new().build_text(
+                r#"小A当前的指令如下:
 #help --帮助
 #mute --让小A沉默
 #active --解除沉默
 #bilibili --随机获取b站视频（待完成）
 #post --在聊天室发帖（待完成）
                 "#,
-                );
-                // self.send_group_msg(&APP_CONF.bot_group, &msg);
-                return true;
-            }
-            // 匹配到指令
-            if message_chain[1]
-                .text
-                .as_ref()
-                .unwrap()
-                .contains("admin add")
-            {
-                let msg = message_chain[1].text.as_ref().unwrap();
+            );
 
-                let reg = Regex::new(r"admin add ([0-9]+)").unwrap();
-                // println!("{:#?}", reg);
-                for (_, [qq]) in reg.captures_iter(&msg).map(|c| c.extract()) {
-                    let res = String::new();
-                    // let res = self.member_admin(&APP_CONF.bot_group, qq, true);
-
-                    if res.is_empty() {
-                        println!("已添加 {} 为管理员~", qq);
-                        let msg =
-                            MessageChain::new().build_text(&format!("已添加 {} 为管理员~", qq));
-                        // self.send_group_msg(&APP_CONF.bot_group, &msg);
-                    } else {
-                        let msg =
-                            MessageChain::new().build_text(&format!("添加失败, 失败原因: {}", res));
-
-                        // self.send_group_msg(&APP_CONF.bot_group, &msg);
-                    }
-                }
-                return true;
-            }
-
-            if message_chain[1]
-                .text
-                .as_ref()
-                .unwrap()
-                .contains("#poweroff")
-            {
-                let msg = MessageChain::new().build_text("已关机");
-
-                // self.send_group_msg(group_num, &msg);
-                exit(0);
-            }
-
-            if message_chain[1].text.as_ref().unwrap().contains("mute") {
-                let msg = MessageChain::new().build_text("小A 已沉默");
-
-                // self.send_group_msg(group_num, &msg);
-
-                return true;
-            }
-
-            if message_chain[1].text.as_ref().unwrap().contains("active") {
-                let msg = MessageChain::new().build_text("小A 开始活跃了！");
-                // self.send_group_msg(group_num, &msg);
-
-                return true;
-            }
+            SENDER.clone().get().unwrap().send(msg).await.unwrap();
+            return true;
         }
+        // 匹配到指令
+        if message_chain[1]
+            .text
+            .as_ref()
+            .unwrap()
+            .contains("admin add")
+        {
+            let msg = message_chain[1].text.as_ref().unwrap();
+
+            let reg = Regex::new(r"admin add ([0-9]+)").unwrap();
+            // println!("{:#?}", reg);
+            for (_, [qq]) in reg.captures_iter(&msg).map(|c| c.extract()) {
+                let res = String::new();
+                // let res = self.member_admin(&APP_CONF.bot_group, qq, true);
+
+                if res.is_empty() {
+                    println!("已添加 {} 为管理员~", qq);
+                    let msg = MessageChain::new().build_text(&format!("已添加 {} 为管理员~", qq));
+                } else {
+                    let msg =
+                        MessageChain::new().build_text(&format!("添加失败, 失败原因: {}", res));
+                }
+            }
+            return true;
+        }
+
+        if message_chain[1]
+            .text
+            .as_ref()
+            .unwrap()
+            .contains("#poweroff")
+        {
+            let ans = MessageChain::new()
+                .build_target(group_num)
+                .build_text("已关机");
+
+            SENDER.clone().get().unwrap().send(ans).await.unwrap();
+
+            exit(0);
+        }
+
+        if message_chain[1].text.as_ref().unwrap().contains("mute") {
+            let msg = MessageChain::new().build_text("小A 已沉默");
+
+            SENDER.clone().get().unwrap().send(msg).await.unwrap();
+
+            return true;
+        }
+
+        if message_chain[1].text.as_ref().unwrap().contains("active") {
+            let msg = MessageChain::new().build_text("小A 开始活跃了！");
+            SENDER.clone().get().unwrap().send(msg).await.unwrap();
+
+            return true;
+        }
+
         return false;
     }
 
@@ -302,11 +290,18 @@ pub async fn try_answer(ask: Vec<Message>, group_num: String) {
                 match get_nearest_answer(ele.text.as_ref().unwrap(), group_num.as_str()).await {
                     Some(answer) => {
                         println!("搜到答案，尝试回复！");
+                        let mut ans = Vec::new();
+                        for ele in answer {
+                            if ele._type.contains("At") {
+                                continue;
+                            }
+                            ans.push(ele);
+                        }
                         SENDER
                             .clone()
                             .get()
                             .unwrap()
-                            .send(MessageChain::from(Some(group_num.clone()), answer))
+                            .send(MessageChain::from(Some(group_num.clone()), ans))
                             .await
                             .unwrap();
                     }
@@ -316,12 +311,19 @@ pub async fn try_answer(ask: Vec<Message>, group_num: String) {
             "Image" => {
                 match get_nearest_answer(ele.image_id.as_ref().unwrap(), group_num.as_str()).await {
                     Some(answer) => {
+                        let mut ans = Vec::new();
+                        for ele in answer {
+                            if ele._type.contains("At") {
+                                continue;
+                            }
+                            ans.push(ele);
+                        }
                         println!("搜到答案，尝试回复！");
                         SENDER
                             .clone()
                             .get()
                             .unwrap()
-                            .send(MessageChain::from(Some(group_num.clone()), answer))
+                            .send(MessageChain::from(Some(group_num.clone()), ans))
                             .await
                             .unwrap();
                     }
