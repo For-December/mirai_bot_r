@@ -13,6 +13,7 @@ pub struct MessageChain {
     pub group_num: Option<String>,
     message_chain: Vec<Message>,
 }
+
 impl MessageChain {
     // 链式调用，所有权转移
     pub fn new() -> MessageChain {
@@ -32,11 +33,23 @@ impl MessageChain {
         self.group_num = Some(String::from(group_num));
         self
     }
+    pub fn ref_build_img(&mut self, url: String) -> &Self {
+        // Message::with(String::from("value"));
+        self.message_chain
+            .push(Message::with(MessageType::Image(url)));
+
+        self
+    }
     pub fn build_img(mut self, url: String) -> Self {
         // Message::with(String::from("value"));
         self.message_chain
             .push(Message::with(MessageType::Image(url)));
 
+        self
+    }
+    pub fn ref_build_text(&mut self, text: &str) -> &Self {
+        self.message_chain
+            .push(Message::with(MessageType::Plain(String::from(text))));
         self
     }
     pub fn build_text(mut self, text: &str) -> Self {

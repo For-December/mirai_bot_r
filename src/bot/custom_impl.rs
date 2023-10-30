@@ -112,10 +112,20 @@ impl MyBot {
 
     pub async fn bilibili_instruction(sender: GroupSender) -> bool {
         let res = get_latest_anime().await;
-        let ans = MessageChain::new()
+        let mut ans = MessageChain::new()
             .build_target(sender.get_group().id.to_string().as_str())
             .build_at(sender.get_id())
-            .build_text(res.first().unwrap().0.as_str());
+            .build_text("\nb站最近更新的番剧来啦：\n");
+        let mut count = 0;
+        for ele in &res {
+            count += 1;
+            if count > 5 {
+                break;
+            }
+            ans.ref_build_text((ele.0.to_string() + "\n => ").as_str());
+            ans.ref_build_text((ele.1.to_string() + "\n").as_str());
+            ans.ref_build_img(ele.2.to_string().trim_matches('\"').to_string());
+        }
         SENDER.clone().get().unwrap().send(ans).await.unwrap();
 
         return true;

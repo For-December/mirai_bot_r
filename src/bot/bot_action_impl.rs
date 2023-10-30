@@ -36,6 +36,8 @@ impl BotAction for MyBot {
             "kind":"Group"
         })
         .to_string();
-        super::api_utils::post_msg(json, "/sendNudge", &self.session_key).await.unwrap();
+        super::api_utils::post_msg(json, "/sendNudge", &self.session_key)
+            .await
+            .unwrap();
     }
 }

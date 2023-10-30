@@ -4,7 +4,7 @@ use serde_json::Value;
 
 use super::web_utils::get_utils;
 
-pub async fn get_latest_anime() -> Vec<(String, String)> {
+pub async fn get_latest_anime() -> Vec<(String, String, String)> {
     let url = "https://api.bilibili.com/pgc/web/timeline/v2";
     let mut query = HashMap::new();
     query.insert("season_type", "1");
@@ -19,7 +19,11 @@ pub async fn get_latest_anime() -> Vec<(String, String)> {
 
     let mut animes_tuple = Vec::new();
     for ele in animes {
-        animes_tuple.push((ele["title"].to_string(), ele["cover"].to_string()));
+        animes_tuple.push((
+            ele["title"].to_string(),
+            ele["pub_index"].to_string(),
+            ele["cover"].to_string(),
+        ));
     }
 
     return animes_tuple;
