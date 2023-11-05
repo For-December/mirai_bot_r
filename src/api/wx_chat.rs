@@ -49,13 +49,16 @@ pub struct Conversation {
 }
 async fn wx_chat(
     conversations: &Vec<Conversation>,
+    user_name: &str,
 ) -> Result<Conversation, Box<dyn std::error::Error>> {
+    println!("{}", user_name);
     let url = String::from("https://aip.baidubce.com/")
         + "rpc/2.0/ai_custom/v1/wenxinworkshop/chat/eb-instant?"
         + "access_token="
         + get_access_token().await.as_str();
     let json = json!({
-        "messages":*conversations
+        "messages":*conversations,
+        "system": format!("首先，你是由名为`flycat`的人开发的智能聊天机器人。请记住，你的名字叫`小A`。现在这整轮的对话都是由用户`{}`发起的，请记住这个名字。现在和你对话的人昵称是`{}`",user_name,user_name),
     })
     .to_string();
     let res = post_utils(json, &url, HashMap::new(), HashMap::new()).await?;
@@ -85,9 +88,21 @@ fn add_context(user_id: &str, conversation: Conversation) -> Option<Vec<Conversa
         .get(user_id)
         .is_none()
     {
-        ctx.write()
-            .expect("RwLock write poisoned")
-            .insert(user_id.to_string(), Arc::new(Mutex::new(Vec::new())));
+        ctx.write().expect("RwLock write poisoned").insert(
+            user_id.to_string(),
+            Arc::new(Mutex::new(
+                Vec::new(), //     vec![
+                            //     Conversation{
+                            //         role:String::from("user"),
+                            //         content:String::from("请记住，你的名字叫小A，不是人工智能。之后我会在对话前加上我的昵称，格式为`昵称：说话内容`，如果我询问你我的名字，请用格式中的昵称称呼我，明白的话回复`明白`"),
+                            //     },
+                            //     Conversation{
+                            //         role:String::from("assistant"),
+                            //         content:String::from("明白"),
+                            //     },
+                            // ]
+            )),
+        );
     }
 
     let conversations = Arc::clone(
@@ -186,9 +201,21 @@ pub trait AI {
                 .is_none()
             {
                 println!("AAA");
-                ctx.write()
-                    .expect("RwLock write poisoned")
-                    .insert(user_id.to_string(), Arc::new(Mutex::new(Vec::new())));
+                ctx.write().expect("RwLock write poisoned").insert(
+                    user_id.to_string(),
+                    Arc::new(Mutex::new(
+                        Vec::new(), //     vec![
+                                    //     Conversation{
+                                    //         role:String::from("user"),
+                                    //         content:String::from("请记住，你的名字叫小A，不是人工智能。之后我会在对话前加上我的昵称，格式为`昵称：说话内容`，如果我询问你我的名字，请用格式中的昵称称呼我，明白的话回复`明白`"),
+                                    //     },
+                                    //     Conversation{
+                                    //         role:String::from("assistant"),
+                                    //         content:String::from("明白"),
+                                    //     },
+                                    // ]
+                    )),
+                );
             } else {
                 println!("BBB");
                 let ctx = ctx.read().expect("RwLock read poisoned");
@@ -212,7 +239,7 @@ pub trait AI {
         if conversations.is_none() {
             return String::from("别急，让我思考一会儿~");
         }
-        let content = wx_chat(&conversations.unwrap())
+        let content = wx_chat(&conversations.unwrap(), user_id)
             .await
             .unwrap()
             .content

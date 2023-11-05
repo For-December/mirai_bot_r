@@ -148,26 +148,27 @@ impl MyBot {
             return true;
         }
         if MyBot::forget(
-            &sender.get_id(),
+            &sender.get_member_name(),
             message_chain[1].text.as_ref().unwrap().as_str(),
         )
         .await
         {
             let ans = MessageChain::new()
                 .build_target(sender.get_group().id.to_string().as_str())
-                .build_at(sender.get_id())
+                .build_at(sender.get_member_name())
                 .build_text("我已经忘掉了之前的故事，让我们重新开始吧~");
             SENDER.clone().get().unwrap().send(ans).await.unwrap();
             return true;
         }
         MyBot::cat_girl(
-            &sender.get_id(),
+            &sender.get_member_name(),
             message_chain[1].text.as_ref().unwrap().as_str(),
         )
         .await;
+
         let ans = MyBot::process_text(
-            &sender.get_id(),
-            message_chain[1].text.as_ref().unwrap().as_str(),
+            &sender.get_member_name(),
+            (sender.get_member_name() + message_chain[1].text.as_ref().unwrap().as_str()).as_str(),
         )
         .await
         .replace("\\n", "\n")
