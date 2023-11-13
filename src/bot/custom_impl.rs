@@ -155,7 +155,7 @@ impl MyBot {
                     .build_at(sender.get_id())
                     .build_text(
                         format!(
-                            "标题：{}\n作者: {}\n描述：{}\n",
+                            "\n标题：{}\n作者: {}\n描述：{}\n",
                             info.title, info.owner_name, info.desc
                         )
                         .as_str(),
