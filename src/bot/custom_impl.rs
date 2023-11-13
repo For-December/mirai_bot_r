@@ -104,16 +104,16 @@ impl MyBot {
         let mut msg = MessageChain::new()
             .build_target(sender.get_group().id.to_string().as_str())
             .build_at(sender.get_id())
-            .build_text("\n详情如下：\n")
-            .build_text(
-                format!(
-                    "name: {}\n type: {}\n size: {}byte",
-                    res.name, res._type, res.size
-                )
-                .as_str(),
-            );
+            .build_text("1");
+        // .build_text(
+        //     format!(
+        //         "\n详情如下：\nname: {}\n type: {}\n size: {}byte",
+        //         res.name, res._type, res.size
+        //     )
+        //     .as_str(),
+        // );
         for ele in res.screenshots.unwrap().into_iter() {
-            msg.ref_build_img(ele["screenshot"].to_string());
+            msg.ref_build_img(ele["screenshot"].to_string().trim_matches('"').to_string());
         }
         SENDER.clone().get().unwrap().send(msg).await.unwrap();
     }

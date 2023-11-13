@@ -103,6 +103,8 @@ pub struct Message {
     pub display: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub path: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub base64: Option<String>,
 }
 
 impl Clone for Message {
@@ -117,6 +119,7 @@ impl Clone for Message {
             display: self.display.clone(),
             path: self.path.clone(),
             image_id: self.image_id.clone(),
+            base64: self.base64.clone(),
         }
     }
 }
