@@ -130,7 +130,7 @@ impl MyBot {
         SENDER.clone().get().unwrap().send(msg).await.unwrap();
     }
 
-    pub async fn sniff_magic_chain(msg: &Message, sender: &GroupSender) -> bool {
+    pub async fn sniff_magic_chain(msg: Message, sender: &GroupSender) -> bool {
         if !msg._type.eq("Plain") {
             return false;
         }
@@ -253,40 +253,44 @@ impl MyBot {
     }
 
     pub async fn chat_listen(message_chain: Vec<Message>, sender: GroupSender) {
-        let ask = get_ask(&message_chain, &sender).await;
+        // 先处理消息
+        let mut new_message_chain = Vec::<Message>::new();
+        for mut ele in message_chain {
+            let text_len = utf8_slice::len(&ele.text.clone().unwrap_or_default());
+            // 有过长的消息（小作文），则概率记录
+            if text_len > 120 {
+                continue; // 小作文大于 120 直接不记录
+            }
+
+            if text_len > 0 && Self::sniff_magic_chain(ele.clone(), &sender).await {
+                println!("磁力链");
+                // 是磁力链
+                continue;
+            }
+
+            // [0-120) [51-120)
+            // 不记录概率 51/120 ~ 119/120
+            // 记录概率 69/120 ~ 1/120
+            if text_len > 50 && thread_rng().gen_range(0..120) < text_len {
+                continue;
+            }
+
+            // 所有imgId清空
+            ele.image_id = None;
+            new_message_chain.push(ele);
+        }
+
+        // 如果没有ask，直接当作ask存进去，否则读出ask
+        let ask = get_ask(&new_message_chain, &sender).await;
+
+        // 读出了 ask，则当前新消息就是answer
         if let Some(ask) = ask {
-            let answer = {
-                let mut new_message_chain = Vec::<Message>::new();
-                for mut ele in message_chain {
-                    let text_len = utf8_slice::len(&ele.text.clone().unwrap_or_default());
-                    // 有过长的消息（小作文），则概率记录
-                    if text_len > 120 {
-                        continue; // 小作文大于 120 直接不记录
-                    }
-
-                    if text_len > 0 && Self::sniff_magic_chain(&ele, &sender).await {
-                        // 是磁力链
-                        continue;
-                    }
-
-                    // [0-120) [51-120)
-                    // 不记录概率 51/120 ~ 119/120
-                    // 记录概率 69/120 ~ 1/120
-                    if text_len > 50 && thread_rng().gen_range(0..120) < text_len {
-                        continue;
-                    }
-
-                    // 所有imgId清空
-                    ele.image_id = None;
-                    new_message_chain.push(ele);
-                }
-                (sender.get_id(), new_message_chain.to_vec())
-            };
+            let answer = { (sender.get_id(), new_message_chain.to_vec()) };
             // println!("ask:{:#?}\n answer:{:#?}", ask, answer);
             for ele in ask.1 {
                 match ele._type.as_str() {
                     "Plain" => {
-                        let ask_text = ele.text.unwrap();
+                        let ask_text = ele.clone().text.unwrap();
                         let mut ask_text = ask_text.as_str();
                         if utf8_slice::len(ask_text) > 255 {
                             ask_text = utf8_slice::slice(ask_text, 0, 255);
