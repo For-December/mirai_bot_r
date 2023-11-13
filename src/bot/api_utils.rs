@@ -3,7 +3,11 @@ use reqwest::StatusCode;
 use serde_json::Value;
 
 use crate::setup::conf::APP_CONF;
-use std::{collections::HashMap, path, process};
+use std::{
+    collections::HashMap,
+    io::{BufWriter, Bytes, Cursor, Seek},
+    path, process,
+};
 pub async fn post_msg(json: String, api_path: &str, session_key: &str) -> Result<String, String> {
     // println!("{}", APP_CONF.base_url.clone() + api_path);
     let res = reqwest::Client::new()
@@ -61,8 +65,20 @@ pub async fn get_bytes(url: &str) -> Result<String, String> {
     let resp = req_builder.send().await.unwrap();
     if resp.status().is_success() {
         let image_byte = resp.bytes().await.unwrap();
-        let base64_img = general_purpose::STANDARD_NO_PAD.encode(image_byte);
-        Ok(base64_img)
+        let img = image::load_from_memory(&image_byte).unwrap();
+        img.resize(
+            img.width() / 2,
+            img.height() / 2,
+            image::imageops::FilterType::CatmullRom,
+        );
+        img.save("a.png").unwrap();
+        // let mut buffer = Cursor::new(Vec::new());
+        // img.write_to(&mut buffer, image::ImageOutputFormat::Png)
+        //     .unwrap();
+        // let base64_img = general_purpose::STANDARD_NO_PAD.encode(
+        //     buffer.
+        // );
+        Ok(String::new())
     } else {
         Err(format!("{:#?}", resp))
     }
