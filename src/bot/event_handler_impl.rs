@@ -1,6 +1,6 @@
 use super::{
     bot_trait::{BotAction, EventHandler},
-    custom_impl::{chat_listen, try_answer},
+    custom_impl::try_answer,
     group::GroupSender,
     message::{Message, MessageChain},
     my_bot::MyBot,
@@ -55,7 +55,7 @@ impl EventHandler for MyBot {
         // 用于总结的记录
         tokio::task::spawn(accumulate_msg(message_chain.clone(), sender.clone()));
         // 用于偷听的记录
-        tokio::task::spawn(chat_listen(message_chain.clone(), sender.clone()));
+        tokio::task::spawn(Self::chat_listen(message_chain.clone(), sender.clone()));
 
         if message_chain.len() == 2
             && message_chain[0]._type.eq("At")
