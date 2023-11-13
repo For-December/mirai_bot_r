@@ -1,7 +1,8 @@
 use std::{
-    f32::consts::E,
     process::exit,
     sync::{Arc, Mutex},
+    thread::sleep,
+    time::Duration,
 };
 
 use lazy_static::lazy_static;
@@ -9,7 +10,7 @@ use rand::{thread_rng, Rng};
 use regex::Regex;
 
 use crate::{
-    api::{aitaffy::aitaffy, bilibili::get_latest_anime, wx_chat::AI},
+    api::{aitaffy::aitaffy, bilibili::get_latest_anime, gpt_chat::AI},
     bot::{message::MessageChain, summary_msg::summary},
     database::mysql::{get_nearest_answer, set_ask_answer},
     setup::conf::APP_CONF,
@@ -17,7 +18,7 @@ use crate::{
 };
 
 use super::{group::GroupSender, message::Message, my_bot::MyBot};
-
+impl AI for MyBot {}
 impl MyBot {
     pub async fn control_instrument(message_chain: &Vec<Message>, group_num: &str) -> bool {
         if message_chain[1].text.as_ref().unwrap().contains("#help") {
@@ -76,7 +77,7 @@ impl MyBot {
                 .build_text("已关机");
 
             SENDER.clone().get().unwrap().send(ans).await.unwrap();
-
+            sleep(Duration::from_secs(5));
             exit(0);
         }
 
@@ -126,7 +127,7 @@ impl MyBot {
         msg += &summary(sender.get_group().id.to_string().as_str());
         println!("#######################\n{}\n#####################", msg);
 
-        let ans = Self::process_text(&sender.get_id(), &msg)
+        let ans = Self::process_text(&sender.get_member_name(), &msg)
             .await
             .replace("\\n", "\n")
             .replace("\\", "");
@@ -140,7 +141,7 @@ impl MyBot {
 
     pub async fn ai_chat(message_chain: Vec<Message>, sender: GroupSender) -> bool {
         if MyBot::debug(
-            &sender.get_id(),
+            &sender.get_member_name(),
             message_chain[1].text.as_ref().unwrap().as_str(),
         )
         .await
@@ -155,16 +156,24 @@ impl MyBot {
         {
             let ans = MessageChain::new()
                 .build_target(sender.get_group().id.to_string().as_str())
-                .build_at(sender.get_member_name())
+                .build_at(sender.get_id())
                 .build_text("我已经忘掉了之前的故事，让我们重新开始吧~");
             SENDER.clone().get().unwrap().send(ans).await.unwrap();
             return true;
         }
-        MyBot::cat_girl(
+        if MyBot::cat_girl(
             &sender.get_member_name(),
             message_chain[1].text.as_ref().unwrap().as_str(),
         )
-        .await;
+        .await
+        {
+            let ans = MessageChain::new()
+                .build_target(sender.get_group().id.to_string().as_str())
+                .build_at(sender.get_id())
+                .build_text("预设加载成功！");
+            SENDER.clone().get().unwrap().send(ans).await.unwrap();
+            return true;
+        }
 
         let ans = MyBot::process_text(
             &sender.get_member_name(),

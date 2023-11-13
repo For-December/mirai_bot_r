@@ -39,7 +39,14 @@ pub async fn post_utils(
             let res = res.text().await.unwrap();
             Ok(res)
         }
-        code => Err(format!("RESPONSE error code: {}", code)),
+        code => {
+            println!("POST url is {url}");
+            println!("headers are {:#?}", header_map);
+            println!("Body json is {json}");
+            println!("query is {:#?}", query);
+            println!("resp body is {}", res.text().await.unwrap_or_default());
+            Err(format!("RESPONSE error code: {}", code))
+        }
     }
 
     // println!("{:#?}",req);

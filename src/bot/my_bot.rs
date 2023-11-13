@@ -1,4 +1,4 @@
-use crate::{api::wx_chat::AI, setup::conf::APP_CONF};
+use crate::setup::conf::APP_CONF;
 
 use super::{event::Event, group::GroupSender, message::Message, message::MessageChain};
 use serde_json::{json, Value};
@@ -116,5 +116,3 @@ impl Drop for MyBot {
         });
     }
 }
-
-impl AI for MyBot {}
