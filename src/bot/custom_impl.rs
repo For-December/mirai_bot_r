@@ -317,8 +317,8 @@ impl MyBot {
                 continue;
             }
 
-            // 所有imgId清空
-            ele.image_id = None;
+            // 所有imgId清空，ask不清空
+            // ele.image_id = None;
             new_message_chain.push(ele);
         }
 
@@ -327,7 +327,13 @@ impl MyBot {
 
         // 读出了 ask，则当前新消息就是answer
         if let Some(ask) = ask {
-            let answer = { (sender.get_id(), new_message_chain.to_vec()) };
+            let temp_answer = { (sender.get_id(), new_message_chain.to_vec()) };
+            let mut answer = { (sender.get_id(), Vec::new()) };
+            for mut ele in temp_answer.1.into_iter() {
+                // 所有imgId清空
+                ele.image_id = None;
+                answer.1.push(ele);
+            }
             // println!("ask:{:#?}\n answer:{:#?}", ask, answer);
             for ele in ask.1 {
                 match ele._type.as_str() {
