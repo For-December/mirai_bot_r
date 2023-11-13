@@ -1,4 +1,5 @@
 use reqwest::StatusCode;
+use serde_json::Value;
 
 use crate::setup::conf::APP_CONF;
 use std::{collections::HashMap, process};
@@ -6,7 +7,7 @@ pub async fn post_msg(json: String, api_path: &str, session_key: &str) -> Result
     // println!("{}", APP_CONF.base_url.clone() + api_path);
     let res = reqwest::Client::new()
         .post(&(APP_CONF.base_url.clone() + api_path))
-        .body(json)
+        .body(json.clone())
         .header("sessionKey", session_key)
         .send()
         .await
@@ -19,7 +20,13 @@ pub async fn post_msg(json: String, api_path: &str, session_key: &str) -> Result
     match res.status() {
         StatusCode::OK => {
             let res = res.text().await.unwrap();
-            Ok(res)
+            let resp_json: Value = serde_json::from_str(&res).unwrap();
+            if resp_json["code"].to_string().eq("200") {
+                Ok(res)
+            } else {
+                println!("{}", json);
+                Err(format!("error: {}", resp_json["msg"].to_string()))
+            }
         }
         code => Err(format!("RESPONSE error code: {}", code)),
     }
