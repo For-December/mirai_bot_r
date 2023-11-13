@@ -110,20 +110,20 @@ impl EventHandler for MyBot {
                 tokio::task::spawn(Self::bilibili_instruction(sender.clone()));
                 return;
             }
-            if message_chain[1].text.as_ref().unwrap().contains("magnet:?") {
-                let index = message_chain[1]
-                    .text
-                    .as_ref()
-                    .unwrap()
-                    .find("magnet:?")
-                    .unwrap_or_default();
-                let magic_str = &message_chain[1].text.as_ref().unwrap()[index..];
-                tokio::task::spawn(Self::magic_instruction(
-                    magic_str.to_string(),
-                    sender.clone(),
-                ));
-                return;
-            }
+            // if message_chain[1].text.as_ref().unwrap().contains("magnet:?") {
+            //     let index = message_chain[1]
+            //         .text
+            //         .as_ref()
+            //         .unwrap()
+            //         .find("magnet:?")
+            //         .unwrap_or_default();
+            //     let magic_str = &message_chain[1].text.as_ref().unwrap()[index..];
+            //     tokio::task::spawn(Self::magic_instruction(
+            //         magic_str.to_string(),
+            //         sender.clone(),
+            //     ));
+            //     return;
+            // }
 
             tokio::task::spawn(Self::ai_chat(message_chain.clone(), sender.clone()));
         }

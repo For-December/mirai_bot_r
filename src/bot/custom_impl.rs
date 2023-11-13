@@ -101,15 +101,16 @@ impl MyBot {
 
     pub async fn magic_instruction(magic_str: String, sender: GroupSender) {
         let res = get_preview(&magic_str).await;
+        let size = res.size as f64;
         let mut msg = MessageChain::new()
             .build_target(sender.get_group().id.to_string().as_str())
             .build_at(sender.get_id())
             .build_text(
                 format!(
-                    "\n详情如下：\nname: {}\n type: {}\n size: {}GB\n",
+                    "\n详情如下：\n name: {}\n type: {}\n size: {:.2}GB\n",
                     res.name,
                     res._type,
-                    res.size / 1024 / 1024 / 1024
+                    size / 1024.0 / 1024.0 / 1024.0
                 )
                 .as_str(),
             )
@@ -129,6 +130,26 @@ impl MyBot {
         SENDER.clone().get().unwrap().send(msg).await.unwrap();
     }
 
+    pub async fn sniff_magic_chain(msg: &Message, sender: &GroupSender) -> bool {
+        if !msg._type.eq("Plain") {
+            return false;
+        }
+        if msg.text.as_ref().unwrap().contains("magnet:?") {
+            let index = msg
+                .text
+                .as_ref()
+                .unwrap()
+                .find("magnet:?")
+                .unwrap_or_default();
+            let magic_str = &msg.text.as_ref().unwrap()[index..];
+            tokio::task::spawn(Self::magic_instruction(
+                magic_str.to_string(),
+                sender.clone(),
+            ));
+            return true;
+        }
+        return false;
+    }
     pub async fn bilibili_instruction(sender: GroupSender) -> bool {
         let res = get_latest_anime().await;
         let mut ans = MessageChain::new()
@@ -230,6 +251,80 @@ impl MyBot {
         // });
         return true;
     }
+
+    pub async fn chat_listen(message_chain: Vec<Message>, sender: GroupSender) {
+        let ask = get_ask(&message_chain, &sender).await;
+        if let Some(ask) = ask {
+            let answer = {
+                let mut new_message_chain = Vec::<Message>::new();
+                for mut ele in message_chain {
+                    let text_len = utf8_slice::len(&ele.text.clone().unwrap_or_default());
+                    // 有过长的消息（小作文），则概率记录
+                    if text_len > 120 {
+                        continue; // 小作文大于 120 直接不记录
+                    }
+
+                    if text_len > 0 && Self::sniff_magic_chain(&ele, &sender).await {
+                        // 是磁力链
+                        continue;
+                    }
+
+                    // [0-120) [51-120)
+                    // 不记录概率 51/120 ~ 119/120
+                    // 记录概率 69/120 ~ 1/120
+                    if text_len > 50 && thread_rng().gen_range(0..120) < text_len {
+                        continue;
+                    }
+
+                    // 所有imgId清空
+                    ele.image_id = None;
+                    new_message_chain.push(ele);
+                }
+                (sender.get_id(), new_message_chain.to_vec())
+            };
+            // println!("ask:{:#?}\n answer:{:#?}", ask, answer);
+            for ele in ask.1 {
+                match ele._type.as_str() {
+                    "Plain" => {
+                        let ask_text = ele.text.unwrap();
+                        let mut ask_text = ask_text.as_str();
+                        if utf8_slice::len(ask_text) > 255 {
+                            ask_text = utf8_slice::slice(ask_text, 0, 255);
+                        }
+                        set_ask_answer(
+                            ask_text,
+                            &sender.get_group().id.to_string(),
+                            &ask.0,
+                            &answer.0,
+                            &answer.1,
+                        )
+                        .await;
+                    }
+                    "Image" => {
+                        set_ask_answer(
+                            ele.image_id.unwrap().as_str(),
+                            &sender.get_group().id.to_string(),
+                            &ask.0,
+                            &answer.0,
+                            &answer.1,
+                        )
+                        .await;
+                    }
+                    _ => return,
+                }
+            }
+        } else {
+            return;
+        }
+        // match global_msg.len() {
+        //     0 => global_msg.push((sender.get_id(), message_chain.to_vec())),
+        //     1 => {
+        //         let ask = global_msg.pop().unwrap();
+        //
+        //     }
+        //     _ => panic!("预期之外的消息数！"),
+        // }
+    }
 }
 lazy_static! {
     static ref GLOBAL_MSG: Arc<Mutex<Vec<(String, Vec<Message>)>>> =
@@ -250,73 +345,6 @@ pub async fn get_ask(
         1 => global_msg.pop(),
         _ => panic!("预期之外的消息数！"),
     }
-}
-pub async fn chat_listen(message_chain: Vec<Message>, sender: GroupSender) {
-    let ask = get_ask(&message_chain, &sender).await;
-    if let Some(ask) = ask {
-        let answer = {
-            let mut new_message_chain = Vec::<Message>::new();
-            for mut ele in message_chain {
-                let text_len = utf8_slice::len(&ele.text.clone().unwrap_or_default());
-                // 有过长的消息（小作文），则概率记录
-                if text_len > 120 {
-                    continue; // 小作文大于 120 直接不记录
-                }
-
-                // [0-120) [51-120)
-                // 不记录概率 51/120 ~ 119/120
-                // 记录概率 69/120 ~ 1/120
-                if text_len > 50 && thread_rng().gen_range(0..120) < text_len {
-                    continue;
-                }
-                // 所有imgId清空
-                ele.image_id = None;
-                new_message_chain.push(ele);
-            }
-            (sender.get_id(), new_message_chain.to_vec())
-        };
-        // println!("ask:{:#?}\n answer:{:#?}", ask, answer);
-        for ele in ask.1 {
-            match ele._type.as_str() {
-                "Plain" => {
-                    let ask_text = ele.text.unwrap();
-                    let mut ask_text = ask_text.as_str();
-                    if utf8_slice::len(ask_text) > 255 {
-                        ask_text = utf8_slice::slice(ask_text, 0, 255);
-                    }
-                    set_ask_answer(
-                        ask_text,
-                        &sender.get_group().id.to_string(),
-                        &ask.0,
-                        &answer.0,
-                        &answer.1,
-                    )
-                    .await;
-                }
-                "Image" => {
-                    set_ask_answer(
-                        ele.image_id.unwrap().as_str(),
-                        &sender.get_group().id.to_string(),
-                        &ask.0,
-                        &answer.0,
-                        &answer.1,
-                    )
-                    .await;
-                }
-                _ => return,
-            }
-        }
-    } else {
-        return;
-    }
-    // match global_msg.len() {
-    //     0 => global_msg.push((sender.get_id(), message_chain.to_vec())),
-    //     1 => {
-    //         let ask = global_msg.pop().unwrap();
-    //
-    //     }
-    //     _ => panic!("预期之外的消息数！"),
-    // }
 }
 
 pub async fn try_answer(ask: Vec<Message>, group_num: String) {
