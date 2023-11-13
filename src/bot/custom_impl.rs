@@ -17,7 +17,7 @@ use crate::{
     SENDER,
 };
 
-use super::{group::GroupSender, message::Message, my_bot::MyBot};
+use super::{api_utils::get_bytes, group::GroupSender, message::Message, my_bot::MyBot};
 impl AI for MyBot {}
 impl MyBot {
     pub async fn control_instrument(message_chain: &Vec<Message>, group_num: &str) -> bool {
@@ -104,16 +104,26 @@ impl MyBot {
         let mut msg = MessageChain::new()
             .build_target(sender.get_group().id.to_string().as_str())
             .build_at(sender.get_id())
-            .build_text("1");
-        // .build_text(
-        //     format!(
-        //         "\n详情如下：\nname: {}\n type: {}\n size: {}byte",
-        //         res.name, res._type, res.size
-        //     )
-        //     .as_str(),
-        // );
+            .build_text(
+                format!(
+                    "\n详情如下：\nname: {}\n type: {}\n size: {}byte\n",
+                    res.name, res._type, res.size
+                )
+                .as_str(),
+            )
+            .build_text("预览图自己点开看罢\n");
         for ele in res.screenshots.unwrap().into_iter() {
-            msg.ref_build_img(ele["screenshot"].to_string().trim_matches('"').to_string());
+            let url = ele["screenshot"]
+                .to_string()
+                .trim_matches('"')
+                .trim_matches(' ')
+                .replace(".", "点")
+                .to_string();
+            // let base64_url = get_bytes(&url).await.unwrap();
+            // msg.ref_build_img(base64_url);
+            // msg.ref_build_img(url);
+            msg.ref_build_text(&url);
+            // break;
         }
         SENDER.clone().get().unwrap().send(msg).await.unwrap();
     }

@@ -40,6 +40,12 @@ impl MessageChain {
 
         self
     }
+    pub fn ref_build_base64_img(&mut self, base_64: String) -> &Self {
+        // Message::with(String::from("value"));
+        self.message_chain
+            .push(Message::with(MessageType::Image(base_64)));
+        self
+    }
     pub fn build_img(mut self, url: String) -> Self {
         // Message::with(String::from("value"));
         self.message_chain
@@ -143,11 +149,18 @@ impl With<MessageType> for Message {
                         image_id: Some(image_id),
                         ..Default::default()
                     }
-                } else {
+                } else if param.contains("http") {
                     let url = param;
                     Message {
                         _type: String::from("Image"),
                         url: Some(url),
+                        ..Default::default()
+                    }
+                } else {
+                    let base64 = param;
+                    Message {
+                        _type: String::from("Image"),
+                        base64: Some(base64),
                         ..Default::default()
                     }
                 }
