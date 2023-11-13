@@ -71,14 +71,17 @@ pub async fn get_bytes(url: &str) -> Result<String, String> {
             img.height() / 2,
             image::imageops::FilterType::CatmullRom,
         );
-        img.save("a.png").unwrap();
+        // img.save("a.png").unwrap();
+
         // let mut buffer = Cursor::new(Vec::new());
         // img.write_to(&mut buffer, image::ImageOutputFormat::Png)
         //     .unwrap();
-        // let base64_img = general_purpose::STANDARD_NO_PAD.encode(
-        //     buffer.
-        // );
-        Ok(String::new())
+
+        let mut bytes: Vec<u8> = Vec::new();
+        img.write_to(&mut Cursor::new(&mut bytes), image::ImageOutputFormat::Png)
+            .unwrap();
+        let base64_img = general_purpose::STANDARD_NO_PAD.encode(bytes);
+        Ok(base64_img)
     } else {
         Err(format!("{:#?}", resp))
     }

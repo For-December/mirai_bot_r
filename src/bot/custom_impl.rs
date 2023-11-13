@@ -106,8 +106,10 @@ impl MyBot {
             .build_at(sender.get_id())
             .build_text(
                 format!(
-                    "\n详情如下：\nname: {}\n type: {}\n size: {}byte\n",
-                    res.name, res._type, res.size
+                    "\n详情如下：\nname: {}\n type: {}\n size: {}GB\n",
+                    res.name,
+                    res._type,
+                    res.size / 1024 / 1024 / 1024
                 )
                 .as_str(),
             )
@@ -117,13 +119,12 @@ impl MyBot {
                 .to_string()
                 .trim_matches('"')
                 .trim_matches(' ')
-                .replace(".", "点")
                 .to_string();
-            // let base64_url = get_bytes(&url).await.unwrap();
-            // msg.ref_build_img(base64_url);
+            let base64_url = get_bytes(&url).await.unwrap();
+            msg.ref_build_img(base64_url);
             // msg.ref_build_img(url);
-            msg.ref_build_text(&url);
-            // break;
+            // msg.ref_build_text(&url);
+            break;
         }
         SENDER.clone().get().unwrap().send(msg).await.unwrap();
     }

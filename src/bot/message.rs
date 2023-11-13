@@ -37,7 +37,6 @@ impl MessageChain {
         // Message::with(String::from("value"));
         self.message_chain
             .push(Message::with(MessageType::Image(url)));
-
         self
     }
     pub fn ref_build_base64_img(&mut self, base_64: String) -> &Self {
