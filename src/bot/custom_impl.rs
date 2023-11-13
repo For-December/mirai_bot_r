@@ -1,4 +1,5 @@
 use std::{
+    f32::consts::E,
     process::exit,
     sync::{Arc, Mutex},
     thread::sleep,
@@ -8,9 +9,15 @@ use std::{
 use lazy_static::lazy_static;
 use rand::{thread_rng, Rng};
 use regex::Regex;
+use std::process;
 
 use crate::{
-    api::{aitaffy::aitaffy, bilibili::get_latest_anime, gpt_chat::AI, magic::get_preview},
+    api::{
+        aitaffy::aitaffy,
+        bilibili::{get_bv_info, get_latest_anime},
+        gpt_chat::AI,
+        magic::get_preview,
+    },
     bot::{message::MessageChain, summary_msg::summary},
     database::mysql::{get_nearest_answer, set_ask_answer},
     setup::conf::APP_CONF,
@@ -130,6 +137,36 @@ impl MyBot {
         SENDER.clone().get().unwrap().send(msg).await.unwrap();
     }
 
+    pub async fn sniff_bilibili_video(msg: Message, sender: GroupSender) -> bool {
+        if !msg._type.eq("Plain") {
+            return false;
+        }
+
+        if msg.text.as_ref().unwrap().contains("bilibili.com") {
+            let index = msg.text.as_ref().unwrap().find("BV").unwrap_or_default();
+
+            let temp = &msg.text.as_ref().unwrap()[index..];
+            let end = temp.find("/").unwrap_or(temp.len());
+            let bvid = temp[..end].to_string();
+            tokio::task::spawn(async move {
+                let info = get_bv_info(&bvid).await;
+                let msg = MessageChain::new()
+                    .build_target(sender.get_group().id.to_string().as_str())
+                    .build_at(sender.get_id())
+                    .build_text(
+                        format!(
+                            "标题：{}\n作者: {}\n描述：{}\n",
+                            info.title, info.owner_name, info.desc
+                        )
+                        .as_str(),
+                    )
+                    .build_img(info.pic);
+                SENDER.clone().get().unwrap().send(msg).await.unwrap();
+            });
+            return true;
+        }
+        return false;
+    }
     pub async fn sniff_magic_chain(msg: Message, sender: &GroupSender) -> bool {
         if !msg._type.eq("Plain") {
             return false;
@@ -268,6 +305,11 @@ impl MyBot {
                 continue;
             }
 
+            if text_len > 0 && Self::sniff_bilibili_video(ele.clone(), sender.clone()).await {
+                println!("bilibili");
+                continue;
+            }
+
             // [0-120) [51-120)
             // 不记录概率 51/120 ~ 119/120
             // 记录概率 69/120 ~ 1/120
@@ -305,8 +347,15 @@ impl MyBot {
                         .await;
                     }
                     "Image" => {
+                        let temp = ele.clone();
                         set_ask_answer(
-                            ele.image_id.unwrap().as_str(),
+                            // 如果是 base64，可能会出问题
+                            ele.image_id
+                                .unwrap_or_else(move || {
+                                    println!("{:#?}", temp);
+                                    process::exit(1);
+                                })
+                                .as_str(),
                             &sender.get_group().id.to_string(),
                             &ask.0,
                             &answer.0,
