@@ -17,7 +17,7 @@ use std::{
         atomic::{AtomicBool, Ordering},
         Arc, Mutex,
     },
-    thread,
+    thread::{self, sleep},
     time::Duration,
 };
 
@@ -95,8 +95,10 @@ impl EventHandler for MyBot {
                 let ans = MessageChain::new()
                     .build_target(&group_num)
                     .build_text("已关机");
-
                 SENDER.clone().get().unwrap().send(ans).await.unwrap();
+
+                sleep(Duration::from_secs(3));
+
                 std::process::exit(0);
             }
 
@@ -108,6 +110,21 @@ impl EventHandler for MyBot {
                 tokio::task::spawn(Self::bilibili_instruction(sender.clone()));
                 return;
             }
+            if message_chain[1]
+                .text
+                .as_ref()
+                .unwrap()
+                .contains("check_car")
+            {
+                let magic_str = message_chain[1]
+                    .text
+                    .as_ref()
+                    .unwrap()
+                    .replace("check_car ", "");
+                tokio::task::spawn(Self::magic_instruction(magic_str, sender.clone()));
+                return;
+            }
+
             tokio::task::spawn(Self::ai_chat(message_chain.clone(), sender.clone()));
         }
 

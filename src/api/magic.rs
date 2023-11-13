@@ -8,12 +8,12 @@ use std::process;
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct MagicDetails {
     #[serde(rename = "type")]
-    _type: String,
-    name: String,
-    size: u64,
-    count: u32,
+    pub _type: String,
+    pub name: String,
+    pub size: u64,
+    pub count: u32,
     #[serde(skip_serializing_if = "Option::is_none")]
-    screenshots: Option<Vec<Value>>,
+    pub screenshots: Option<Vec<Value>>,
 }
 
 pub async fn get_preview(url: &str) -> MagicDetails {

@@ -10,7 +10,7 @@ use rand::{thread_rng, Rng};
 use regex::Regex;
 
 use crate::{
-    api::{aitaffy::aitaffy, bilibili::get_latest_anime, gpt_chat::AI},
+    api::{aitaffy::aitaffy, bilibili::get_latest_anime, gpt_chat::AI, magic::get_preview},
     bot::{message::MessageChain, summary_msg::summary},
     database::mysql::{get_nearest_answer, set_ask_answer},
     setup::conf::APP_CONF,
@@ -97,6 +97,25 @@ impl MyBot {
         }
 
         return false;
+    }
+
+    pub async fn magic_instruction(magic_str: String, sender: GroupSender) {
+        let res = get_preview(&magic_str).await;
+        let mut msg = MessageChain::new()
+            .build_target(sender.get_group().id.to_string().as_str())
+            .build_at(sender.get_id())
+            .build_text("\n详情如下：\n")
+            .build_text(
+                format!(
+                    "name: {}\n type: {}\n size: {}byte",
+                    res.name, res._type, res.size
+                )
+                .as_str(),
+            );
+        for ele in res.screenshots.unwrap().into_iter() {
+            msg.ref_build_img(ele["screenshot"].to_string());
+        }
+        SENDER.clone().get().unwrap().send(msg).await.unwrap();
     }
 
     pub async fn bilibili_instruction(sender: GroupSender) -> bool {
