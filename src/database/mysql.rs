@@ -5,6 +5,7 @@ use sqlx::{types::time::PrimitiveDateTime, FromRow, MySql, MySqlPool, Pool};
 use crate::bot::message::Message;
 
 #[derive(Debug, FromRow, Default)]
+#[allow(dead_code)]
 struct AskAnswer {
     pub id: Option<i32>,
     pub group_id: Option<String>,
@@ -100,41 +101,41 @@ pub async fn set_ask_answer(
 
 #[cfg(test)]
 mod test {
-    use std::path::Ancestors;
+    // use std::path::Ancestors;
 
-    use crate::{
-        bot::message::{Message, MessageChain},
-        database::mysql::set_ask_answer,
-    };
-    use serde_json::Value;
+    // use crate::{
+    //     bot::message::{Message, MessageChain},
+    //     database::mysql::set_ask_answer,
+    // };
+    // use serde_json::Value;
 
-    use sqlx::{
-        types::{time::PrimitiveDateTime, Json},
-        MySqlPool,
-    };
+    // use sqlx::{
+    //     types::{time::PrimitiveDateTime, Json},
+    //     MySqlPool,
+    // };
 
-    use super::{get_nearest_answer, AskAnswer};
+    // use super::{get_nearest_answer, AskAnswer};
 
     // use super::{get_connect, init_mysql_pool};
 
-    #[derive(Debug, sqlx::FromRow)]
-    struct User {
-        pub id: Option<i32>,
-        pub name: Option<String>,
-        pub birth: Option<String>,
-        pub data: Option<PrimitiveDateTime>,
-    }
+    // #[derive(Debug, sqlx::FromRow)]
+    // struct User {
+    //     pub id: Option<i32>,
+    //     pub name: Option<String>,
+    //     pub birth: Option<String>,
+    //     pub data: Option<PrimitiveDateTime>,
+    // }
 
     #[tokio::test]
     pub async fn test_ask_answer() {
         // let res = get_nearest_answer("别急","").unwrap();
         // println!("{:#?}", res);
-        let ask = "好好呀好";
-        let asker_id = "1921567337";
-        let replier_id = "1921567337";
-        let answer = MessageChain::new().build_text("文本消息");
-        let answer = answer.get_message_chain();
-        set_ask_answer(ask, "test", asker_id, replier_id, answer).await;
+        // let ask = "好好呀好";
+        // let asker_id = "1921567337";
+        // let replier_id = "1921567337";
+        // let answer = MessageChain::new().build_text("文本消息");
+        // let answer = answer.get_message_chain();
+        // set_ask_answer(ask, "test", asker_id, replier_id, answer).await;
     }
 
     #[test]

@@ -1,7 +1,7 @@
-use async_trait::async_trait;
-use serde_json::{json, Value};
+// use async_trait::async_trait;
+// use serde_json::{json, Value};
 
-use super::{bot_trait::GroupAdmin, my_bot::MyBot};
+// use super::{bot_trait::GroupAdmin, my_bot::MyBot};
 
 // #[async_trait]
 // impl GroupAdmin for MyBot {
@@ -23,28 +23,28 @@ use super::{bot_trait::GroupAdmin, my_bot::MyBot};
 // }
 #[cfg(test)]
 mod test {
-    use regex::Regex;
+    // use regex::Regex;
 
-    use super::*;
+    // use super::*;
     #[test]
     pub fn test_member_admin() {
-        let group_num = "11";
-        let member_id = "222";
-        let assign = false;
-        let json = json!({
-            "target":group_num,
-            "memberId":member_id,
-            "assign":assign,
-        })
-        .to_string();
-        println!("{}", json);
-        let reg = Regex::new(r"add admin ([\s\S]+)").unwrap();
-        println!("{:#?}", reg);
-        for (_, [qq]) in reg
-            .captures_iter("add admin 1921567337")
-            .map(|c| c.extract())
-        {
-            println!("{}", qq);
-        }
+        // let group_num = "11";
+        // let member_id = "222";
+        // let assign = false;
+        // let json = json!({
+        //     "target":group_num,
+        //     "memberId":member_id,
+        //     "assign":assign,
+        // })
+        // .to_string();
+        // println!("{}", json);
+        // let reg = Regex::new(r"add admin ([\s\S]+)").unwrap();
+        // println!("{:#?}", reg);
+        // for (_, [qq]) in reg
+        //     .captures_iter("add admin 1921567337")
+        //     .map(|c| c.extract())
+        // {
+        //     println!("{}", qq);
+        // }
     }
 }

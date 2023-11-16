@@ -6,16 +6,16 @@ use super::{
     my_bot::MyBot,
     summary_msg::accumulate_msg,
 };
-use crate::{api::bilibili, setup::conf::APP_CONF, MY_BOT, SENDER};
+use crate::SENDER;
 use async_trait::async_trait;
-use rand::{thread_rng, Rng};
+// use rand::{thread_rng, Rng};
 
 use lazy_static::lazy_static;
 use serde_json::Value;
 use std::{
     sync::{
         atomic::{AtomicBool, Ordering},
-        Arc, Mutex,
+        Arc,
     },
     thread::{self, sleep},
     time::Duration,
@@ -163,7 +163,9 @@ impl EventHandler for MyBot {
                 .build_target(subject["id"].to_string().as_str())
                 .build_at(String::from(from_id))
                 .build_text("别戳我！") // https://api.vvhan.com/api/acgimg
-                .build_img(String::from("https://t.mwm.moe/ycy"));
+                .build_img(String::from("https://api.anosu.top/img/")); // https://api.anosu.top/img/
+
+            //https://t.mwm.moe/ycy
             SENDER.clone().get().unwrap().send(msg).await.unwrap();
             // self.send_group_msg(&subject["id"].to_string(), &msg);
             self.send_group_nudge(subject["id"].to_string(), from_id.clone())

@@ -5,8 +5,7 @@ use serde_json::Value;
 use crate::setup::conf::APP_CONF;
 use std::{
     collections::HashMap,
-    io::{BufWriter, Bytes, Cursor, Seek},
-    path, process,
+    io::Cursor, process,
 };
 pub async fn post_msg(json: String, api_path: &str, session_key: &str) -> Result<String, String> {
     // println!("{}", APP_CONF.base_url.clone() + api_path);

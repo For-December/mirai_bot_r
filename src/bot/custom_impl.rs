@@ -1,5 +1,4 @@
 use std::{
-    f32::consts::E,
     process::exit,
     sync::{Arc, Mutex},
     thread::sleep,
@@ -13,7 +12,6 @@ use std::process;
 
 use crate::{
     api::{
-        aitaffy::aitaffy,
         bilibili::{get_bv_info, get_latest_anime},
         gpt_chat::AI,
         magic::get_preview,
@@ -62,13 +60,13 @@ impl MyBot {
                 let res = String::new();
                 // let res = self.member_admin(&APP_CONF.bot_group, qq, true);
 
-                if res.is_empty() {
+                let msg = if res.is_empty() {
                     println!("已添加 {} 为管理员~", qq);
-                    let msg = MessageChain::new().build_text(&format!("已添加 {} 为管理员~", qq));
+                    MessageChain::new().build_text(&format!("已添加 {} 为管理员~", qq))
                 } else {
-                    let msg =
-                        MessageChain::new().build_text(&format!("添加失败, 失败原因: {}", res));
-                }
+                    MessageChain::new().build_text(&format!("添加失败, 失败原因: {}", res))
+                };
+                SENDER.clone().get().unwrap().send(msg).await.unwrap();
             }
             return true;
         }
@@ -249,18 +247,29 @@ impl MyBot {
             SENDER.clone().get().unwrap().send(ans).await.unwrap();
             return true;
         }
-        if MyBot::cat_girl(
+        match MyBot::cat_girl(
             &sender.get_member_name(),
             message_chain[1].text.as_ref().unwrap().as_str(),
         )
         .await
         {
-            let ans = MessageChain::new()
-                .build_target(sender.get_group().id.to_string().as_str())
-                .build_at(sender.get_id())
-                .build_text("预设加载成功！");
-            SENDER.clone().get().unwrap().send(ans).await.unwrap();
-            return true;
+            0 => {
+                let ans = MessageChain::new()
+                    .build_target(sender.get_group().id.to_string().as_str())
+                    .build_at(sender.get_id())
+                    .build_text("预设加载成功！");
+                SENDER.clone().get().unwrap().send(ans).await.unwrap();
+                return true;
+            }
+            1 => {
+                let ans = MessageChain::new()
+                    .build_target(sender.get_group().id.to_string().as_str())
+                    .build_at(sender.get_id())
+                    .build_text("没有这个预设~");
+                SENDER.clone().get().unwrap().send(ans).await.unwrap();
+                return false;
+            }
+            _ => {}
         }
 
         let ans = MyBot::process_text(
@@ -292,7 +301,7 @@ impl MyBot {
     pub async fn chat_listen(message_chain: Vec<Message>, sender: GroupSender) {
         // 先处理消息
         let mut new_message_chain = Vec::<Message>::new();
-        for mut ele in message_chain {
+        for ele in message_chain {
             let text_len = utf8_slice::len(&ele.text.clone().unwrap_or_default());
             // 有过长的消息（小作文），则概率记录
             if text_len > 120 {

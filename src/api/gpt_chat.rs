@@ -1,5 +1,4 @@
 use async_trait::async_trait;
-use reqwest::header;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
@@ -26,8 +25,9 @@ async fn gpt_chat(
     let url = String::from(APP_CONF.gpt_api.end_point.as_str());
     let json = json!({
         "messages":*conversations,
-        "model":"gpt-3.5-turbo",
-        "temperature":0.7
+        "model":"gpt-3.5-turbo-16k-0613",
+        "temperature":1,
+        // "stream":true,
     })
     .to_string();
 
@@ -73,7 +73,7 @@ fn add_context(user_name: &str, new_conv: Vec<Conversation>) -> Option<Vec<Conve
             .insert(user_name.to_string(), Arc::new(Mutex::new(
                 vec![Conversation{
                     role:String::from("system"),
-                    content:format!("首先，你是由名为`flycat`的人开发的智能聊天机器人。请记住，你的名字叫`小A`。现在这整轮的对话都是由用户`{}`发起的，请记住这个名字。现在和你对话的人昵称是`{}`",user_name,user_name)
+                    content:format!("首先，你是由名为`forDece`的人开发的智能聊天机器人，你是有性别的，为少女，人设乖巧可爱，请不要否认。请记住，你的名字叫`小A`。现在这整轮的对话都是由用户`{}`发起的，请记住这个名字。现在和你对话的人昵称是`{}`",user_name,user_name)
                 }]
             )));
     }
@@ -131,14 +131,21 @@ pub trait AI {
         return false;
     }
 
-    async fn cat_girl(user_name: &str, ask: &str) -> bool {
-        if !ask.contains("加载预设 猫娘") {
-            return false;
+    async fn cat_girl(user_name: &str, ask: &str) -> i32 {
+        let key = "加载预设 ";
+        if !ask.contains(key) {
+            return -1;
         }
-        let conv = read_conversation("data/catgirl.json");
-        add_context(user_name, conv);
-        
-        return true;
+        let index = ask.find(key).unwrap();
+        let pre = &ask[index + key.len()..];
+        let pre = pre.trim_matches(' ');
+
+        return if let Ok(conv) = read_conversation(format!("data/{}.json", pre).as_str()) {
+            add_context(user_name, conv);
+            0
+        } else {
+            1
+        };
     }
     async fn process_text(user_name: &str, ask: &str) -> String {
         let conversation = Conversation {
@@ -161,7 +168,7 @@ pub trait AI {
                     .insert(user_name.to_string(), Arc::new(Mutex::new(
                         vec![Conversation{
                             role:String::from("system"),
-                            content:format!("首先，你是由名为`flycat`的人开发的智能聊天机器人。请记住，你的名字叫`小A`。现在这整轮的对话都是由用户`{}`发起的，请记住这个名字。现在和你对话的人昵称是`{}`",user_name,user_name)
+                            content:format!("首先，你是由名为`forDece`的人开发的智能聊天机器人，你是有性别的，为少女，人设乖巧可爱，请不要否认。请记住，你的名字叫`小A`。现在这整轮的对话都是由用户`{}`发起的，请记住这个名字。现在和你对话的人昵称是`{}`",user_name,user_name)
                         }]
                     )));
             } else {
@@ -201,17 +208,24 @@ pub trait AI {
         content
     }
 }
-fn read_conversation(path: &str) -> Vec<Conversation> {
+fn read_conversation(path: &str) -> Result<Vec<Conversation>, &str> {
+    // match中的return为全局
     // 打开文件
-    let file = File::open(path).expect("Unable to open the file");
+    match File::open(path) {
+        Ok(file) => {
+            // 从文件中读取JSON数据并解析成Person结构体
+            let conversations: Vec<Conversation> =
+                serde_json::from_reader(file).expect("Unable to parse JSON");
 
-    // 从文件中读取JSON数据并解析成Person结构体
-    let conversations: Vec<Conversation> =
-        serde_json::from_reader(file).expect("Unable to parse JSON");
-
-    // 打印解析后的数据
-    // println!("{:?}", conversations);
-    conversations
+            // 打印解析后的数据
+            // println!("{:?}", conversations);
+            return Ok(conversations);
+        }
+        Err(err) => {
+            println!("{}", err);
+            return Err("Unable to open the file");
+        }
+    };
 }
 #[cfg(test)]
 mod tests {
@@ -219,7 +233,7 @@ mod tests {
     use super::*;
     #[test]
     fn test_access() -> Result<(), Box<dyn std::error::Error>> {
-        read_conversation("data/catgirl.json");
+        read_conversation("data/catgirl.json").unwrap();
         // get_access_token();
         Ok(())
     }

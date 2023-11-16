@@ -15,7 +15,7 @@ use tokio::sync::mpsc::Sender;
 
 use crate::bot::bot_trait::BotAction;
 use crate::bot::bot_trait::EventHandler;
-use crate::bot::message::Message;
+// use crate::bot::message::Message;
 use crate::bot::message::MessageChain;
 
 lazy_static! {
@@ -70,5 +70,5 @@ pub async fn run() -> Result<(), Box<dyn std::error::Error>> {
         });
     }
 
-    Ok(())
+    // Ok(())
 }

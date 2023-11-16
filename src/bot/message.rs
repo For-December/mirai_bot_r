@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+#[allow(dead_code)]
 enum MessageType {
     Plain(String),
     Image(String),
