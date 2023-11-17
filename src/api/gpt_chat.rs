@@ -19,9 +19,7 @@ struct Conversation {
     role: String,
     content: String,
 }
-async fn gpt_chat(
-    conversations: &Vec<Conversation>,
-) -> Result<Conversation, Box<dyn std::error::Error>> {
+async fn gpt_chat(conversations: &Vec<Conversation>) -> Result<Conversation, String> {
     let url = String::from(APP_CONF.gpt_api.end_point.as_str());
     let json = json!({
         "messages":*conversations,
@@ -37,22 +35,28 @@ async fn gpt_chat(
         ("Content-type", "application/json"),
     ];
     let headers: HashMap<_, _> = headers.into_iter().collect();
-    let res = post_utils(json, &url, HashMap::new(), headers)
-        .await
-        .unwrap_or_else(|err| {
+    match post_utils(json, &url, HashMap::new(), headers).await {
+        Ok(res) => {
+            // .unwrap_or_else(|err| {
+            //     println!("{}", err);
+            //     process::exit(0);
+            // });
+            let answer: Value = serde_json::from_str(&res).unwrap();
+            let content = answer["choices"][0]["message"]["content"].to_string();
+            if content.is_empty() {
+                println!("err: ans is {}", answer);
+                process::exit(0);
+            }
+            return Ok(Conversation {
+                role: String::from("assistant"),
+                content,
+            });
+        }
+        Err(err) => {
             println!("{}", err);
-            process::exit(0);
-        });
-    let answer: Value = serde_json::from_str(&res)?;
-    let content = answer["choices"][0]["message"]["content"].to_string();
-    if content.is_empty() {
-        println!("err: ans is {}", answer);
-        process::exit(0);
+            return Err(err);
+        }
     }
-    return Ok(Conversation {
-        role: String::from("assistant"),
-        content,
-    });
 }
 
 lazy_static! {
@@ -113,7 +117,7 @@ fn clear_context(user_name: &str) {
 
 #[async_trait]
 pub trait AI {
-    async fn debug(user_name: &str, ask: &str) -> bool {
+    async fn debug(_user_name: &str, ask: &str) -> bool {
         if ask.contains("#debug") {
             let content = Arc::clone(&AI_CONTEXT);
             let resp = content.read().unwrap();
@@ -194,18 +198,17 @@ pub trait AI {
         if conversations.is_none() {
             return String::from("别急，让我思考一会儿~");
         }
-        let content = gpt_chat(&conversations.unwrap())
-            .await
-            .unwrap()
-            .content
-            .trim_matches('\"')
-            .to_string();
-        let conversation = Conversation {
-            role: String::from("assistant"),
-            content: content.clone(),
-        };
-        add_context(user_name, vec![conversation]);
-        content
+        if let Ok(content) = gpt_chat(&conversations.unwrap()).await {
+            let content = content.content.trim_matches('\"').to_string();
+            let conversation = Conversation {
+                role: String::from("assistant"),
+                content: content.clone(),
+            };
+            add_context(user_name, vec![conversation]);
+            content
+        } else {
+            return String::from("请求超时了捏~");
+        }
     }
 }
 fn read_conversation(path: &str) -> Result<Vec<Conversation>, &str> {

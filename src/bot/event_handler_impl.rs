@@ -162,8 +162,8 @@ impl EventHandler for MyBot {
             let msg = MessageChain::new()
                 .build_target(subject["id"].to_string().as_str())
                 .build_at(String::from(from_id))
-                .build_text("别戳我！") // https://api.vvhan.com/api/acgimg
-                .build_img(String::from("https://api.anosu.top/img/")); // https://api.anosu.top/img/
+                .build_text("别戳我！"); // https://api.vvhan.com/api/acgimg
+                                         // .build_img(String::from("http://127.0.0.1:9989/proxy")); // https://api.anosu.top/img/
 
             //https://t.mwm.moe/ycy
             SENDER.clone().get().unwrap().send(msg).await.unwrap();
