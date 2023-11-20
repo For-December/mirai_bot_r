@@ -66,8 +66,8 @@ pub async fn get_bytes(url: &str) -> Result<String, String> {
         let image_byte = resp.bytes().await.unwrap();
         let img = image::load_from_memory(&image_byte).unwrap();
         img.resize(
-            img.width() / 2,
-            img.height() / 2,
+            img.width() / 3,
+            img.height() / 3,
             image::imageops::FilterType::CatmullRom,
         );
         // img.save("a.png").unwrap();

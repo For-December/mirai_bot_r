@@ -48,7 +48,10 @@ pub async fn get_bv_info(bvid: &str) -> BVInfo {
 
     let res: Value = serde_json::from_str(&res).unwrap();
 
-    let desc = res["data"]["desc"].to_string();
+    let desc = res["data"]["desc"]
+        .to_string()
+        .replace("\\n", "\n")
+        .replace("\\", "");
     let pic = res["data"]["pic"].to_string().trim_matches('"').to_string();
     let title = res["data"]["title"].to_string();
     let owner_name = res["data"]["owner"]["name"].to_string();

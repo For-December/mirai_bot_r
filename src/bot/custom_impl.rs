@@ -426,6 +426,7 @@ pub async fn try_answer(ask: Vec<Message>, group_num: String) {
                 match get_nearest_answer(ele.text.as_ref().unwrap(), group_num.as_str()).await {
                     Some(answer) => {
                         println!("搜到答案，尝试回复！");
+                        println!("ask_text = {}", ele.text.as_ref().unwrap());
                         let mut ans = Vec::new();
                         for ele in answer {
                             if ele._type.contains("At") {

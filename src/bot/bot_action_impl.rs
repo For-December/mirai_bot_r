@@ -24,9 +24,14 @@ impl BotAction for MyBot {
         .to_string();
         println!("{}", json);
 
-        super::api_utils::post_msg(json, "/sendGroupMessage", &self.session_key)
-            .await
-            .unwrap();
+        match super::api_utils::post_msg(json, "/sendGroupMessage", &self.session_key).await {
+            Ok(msg) => {
+                println!("send msg success: {}", msg);
+            }
+            Err(err) => {
+                println!("send group msg error: {}", err);
+            }
+        }
     }
 
     async fn send_group_nudge(&'static self, subject: String, target: String) {
