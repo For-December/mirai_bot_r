@@ -144,7 +144,9 @@ impl MyBot {
             let index = msg.text.as_ref().unwrap().find("BV").unwrap_or_default();
 
             let temp = &msg.text.as_ref().unwrap()[index..];
-            let end = temp.find("/").unwrap_or(temp.len());
+            let end = temp
+                .find("?")
+                .unwrap_or(temp.find("/").unwrap_or(temp.len()));
             let bvid = temp[..end].to_string();
             tokio::task::spawn(async move {
                 let info = get_bv_info(&bvid).await;
@@ -430,7 +432,7 @@ pub async fn try_answer(ask: Vec<Message>, group_num: String) {
                         let mut ans = Vec::new();
                         for ele in answer {
                             if ele._type.contains("At") {
-                                continue;
+                                // continue;
                             }
                             ans.push(ele);
                         }
@@ -451,7 +453,7 @@ pub async fn try_answer(ask: Vec<Message>, group_num: String) {
                         let mut ans = Vec::new();
                         for ele in answer {
                             if ele._type.contains("At") {
-                                continue;
+                                // continue;
                             }
                             ans.push(ele);
                         }
