@@ -171,16 +171,16 @@ impl MyBot {
         if !msg._type.eq("Plain") {
             return false;
         }
-        if msg.text.as_ref().unwrap().contains("magnet:?") {
+        if msg.text.as_ref().unwrap().contains("magnet") {
             let index = msg
                 .text
                 .as_ref()
                 .unwrap()
-                .find("magnet:?")
+                .find("magnet")
                 .unwrap_or_default();
             let magic_str = &msg.text.as_ref().unwrap()[index..];
             tokio::task::spawn(Self::magic_instruction(
-                magic_str.to_string(),
+                magic_str.replace("：", ":").replace("？", "?").to_string(),
                 sender.clone(),
             ));
             return true;

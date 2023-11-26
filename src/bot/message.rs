@@ -67,6 +67,8 @@ impl MessageChain {
         self.message_chain.push(Message::with(MessageType::At(
             target.parse::<i64>().expect("解析艾特的 qq 号失败！"),
         )));
+        self.message_chain
+            .push(Message::with(MessageType::Plain(String::from("\n"))));
         self
     }
     // 独占，无法联合

@@ -18,7 +18,10 @@ pub async fn post_utils(
             HeaderValue::from_str(*v).unwrap(),
         );
     });
-    let res = reqwest::Client::new()
+    let res = reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+        .unwrap()
         .post(url)
         .query(&query)
         .body(json.clone())
@@ -69,7 +72,10 @@ pub async fn get_utils(
             HeaderValue::from_str(*v).unwrap(),
         );
     });
-    let res = reqwest::Client::new()
+    let res = reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+        .unwrap()
         .get(url)
         .query(&query)
         .body(json.clone())
@@ -90,6 +96,30 @@ pub async fn get_utils(
             let res = res.text().await.unwrap();
             Ok(res)
         }
+        StatusCode::FOUND => {
+            let res = res.text().await.unwrap();
+            Ok(res)
+        }
         code => Err(format!("RESPONSE error code: {}", code)),
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use std::collections::HashMap;
+
+    use super::get_utils;
+
+    #[tokio::test]
+    async fn test_post() {
+        let res = get_utils(
+            String::new(),
+            "https://b23.tv/L542xQG",
+            HashMap::new(),
+            HashMap::new(),
+        )
+        .await
+        .unwrap();
+        println!("{}", res);
     }
 }
