@@ -13,6 +13,7 @@ use async_trait::async_trait;
 use lazy_static::lazy_static;
 use serde_json::Value;
 use std::{
+    process::exit,
     sync::{
         atomic::{AtomicBool, Ordering},
         Arc,
@@ -95,11 +96,20 @@ impl EventHandler for MyBot {
                 let ans = MessageChain::new()
                     .build_target(&group_num)
                     .build_text("已关机");
-                SENDER.clone().get().unwrap().send(ans).await.unwrap();
-
-                sleep(Duration::from_secs(3));
-
-                std::process::exit(0);
+                let res = SENDER
+                    .clone()
+                    .get()
+                    .unwrap()
+                    .send(ans)
+                    .await
+                    .is_ok_and(|_| {
+                        std::process::exit(0);
+                    });
+                if !res {
+                    println!("关机消息发送失败！！");
+                    std::process::exit(0);
+                    // return;
+                }
             }
 
             if message_chain[1].text.as_ref().unwrap().contains("summary") {
