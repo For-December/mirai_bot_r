@@ -13,7 +13,6 @@ use async_trait::async_trait;
 use lazy_static::lazy_static;
 use serde_json::Value;
 use std::{
-    process::exit,
     sync::{
         atomic::{AtomicBool, Ordering},
         Arc,
@@ -82,9 +81,20 @@ impl EventHandler for MyBot {
                 let msg = MessageChain::new()
                     .build_target(&group_num)
                     .build_text("小A 已沉默");
-                SENDER.clone().get().unwrap().send(msg).await.unwrap();
-                let is_mute = Arc::clone(&IS_MUTE);
-                is_mute.store(true, Ordering::Release);
+                let res = SENDER
+                    .clone()
+                    .get()
+                    .unwrap()
+                    .send(msg)
+                    .await
+                    .is_ok_and(|_| {
+                        let is_mute = Arc::clone(&IS_MUTE);
+                        is_mute.store(true, Ordering::Release);
+                        true
+                    });
+                if res {
+                    println!("成功沉默小A！");
+                }
                 return;
             }
             if message_chain[1]
@@ -103,13 +113,19 @@ impl EventHandler for MyBot {
                     .send(ans)
                     .await
                     .is_ok_and(|_| {
-                        std::process::exit(0);
+                        tokio::task::spawn(async {
+                            sleep(Duration::from_secs(1));
+                            println!("已关机");
+                            std::process::exit(0);
+                        });
+                        true
                     });
                 if !res {
                     println!("关机消息发送失败！！");
                     std::process::exit(0);
                     // return;
                 }
+                return;
             }
 
             if message_chain[1].text.as_ref().unwrap().contains("summary") {

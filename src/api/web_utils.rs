@@ -1,5 +1,6 @@
 use std::{collections::HashMap, process, str::FromStr};
 
+use regex::Regex;
 use reqwest::{
     header::{HeaderMap, HeaderName, HeaderValue},
     StatusCode,
@@ -98,7 +99,17 @@ pub async fn get_utils(
         }
         StatusCode::FOUND => {
             let res = res.text().await.unwrap();
-            Ok(res)
+            let re = Regex::new(r"(https://\S*?)[?]").unwrap();
+            if let Some(captures) = re.captures(&res) {
+                let url = captures.get(1).map_or("", |m| m.as_str());
+                // 如果是None则返回""，否则转变为&str并返回
+                if url.is_empty() {
+                    return Err(String::from("没有匹配到合适的重定向链接"));
+                }
+                return Ok(String::from(url));
+            } else {
+                return Err(String::from("没有匹配到重定向链接"));
+            }
         }
         code => Err(format!("RESPONSE error code: {}", code)),
     }
@@ -107,6 +118,7 @@ pub async fn get_utils(
 #[cfg(test)]
 mod test {
     use std::collections::HashMap;
+
 
     use super::get_utils;
 

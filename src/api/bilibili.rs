@@ -35,6 +35,27 @@ pub struct BVInfo {
     pub title: String,
     pub owner_name: String,
 }
+pub async fn get_info(url: &str) -> Result<BVInfo, &str> {
+    if url.contains("bilibili.com") {
+        return Ok(get_bv_info(get_bv(url)).await);
+    }
+    if url.contains("b23.tv") {
+        let url = get_utils(String::new(), url, HashMap::new(), HashMap::new())
+            .await
+            .unwrap();
+        return Ok(get_bv_info(get_bv(&url)).await);
+    }
+
+    return Err("未找到BV号");
+}
+fn get_bv<'a>(url: &'a str) -> &'a str {
+    let index = url.find("BV").unwrap_or_default();
+    let temp = &url[index..];
+    let end = temp
+        .find("?")
+        .unwrap_or(temp.find("/").unwrap_or(temp.len()));
+    &temp[..end]
+}
 pub async fn get_bv_info(bvid: &str) -> BVInfo {
     let url = "https://api.bilibili.com/x/web-interface/view";
     let res = get_utils(
