@@ -1,8 +1,26 @@
 use std::collections::HashMap;
 
+use regex::Regex;
 use serde_json::Value;
 
-use super::web_utils::get_utils;
+use super::web_utils::{get_utils, post_utils};
+
+pub async fn get_video_summary(bili_url: String) -> String {
+    match post_utils(
+        bili_url,
+        "http://localhost:987
+    6/ai",
+        HashMap::new(),
+        HashMap::new(),
+    )
+    .await
+    {
+        Ok(resp) => resp,
+        Err(err) => {
+            format!("error: {}", err)
+        }
+    }
+}
 
 pub async fn get_latest_anime() -> Vec<(String, String, String)> {
     let url = "https://api.bilibili.com/pgc/web/timeline/v2";
@@ -34,16 +52,33 @@ pub struct BVInfo {
     pub pic: String,
     pub title: String,
     pub owner_name: String,
+    pub url: String,
 }
-pub async fn get_info(url: &str) -> Result<BVInfo, &str> {
-    if url.contains("bilibili.com") {
-        return Ok(get_bv_info(get_bv(url)).await);
+pub async fn get_info(text: &str) -> Result<BVInfo, &str> {
+    if text.contains("bilibili.com") {
+        // 直接获取bv
+        return Ok(get_bv_info(get_bv(text)).await);
     }
-    if url.contains("b23.tv") {
-        let url = get_utils(String::new(), url, HashMap::new(), HashMap::new())
-            .await
-            .unwrap();
-        return Ok(get_bv_info(get_bv(&url)).await);
+    if text.contains("b23.tv") {
+        // 间接获取bv
+        let re = Regex::new(r"(https://b23.tv/\S+)[?/]?").unwrap();
+        if let Some(captures) = re.captures(&text) {
+            let url = captures.get(1).map_or("", |m| m.as_str());
+            // 如果是None则返回""，否则转变为&str并返回
+            if url.is_empty() {
+                return Err("未找到合适的链接");
+            }
+
+            println!("{}", url);
+            // 解包bv url
+            let url = get_utils(String::new(), url, HashMap::new(), HashMap::new())
+                .await
+                .unwrap();
+            println!("url is=> {}", url);
+            return Ok(get_bv_info(get_bv(&url)).await);
+        } else {
+            return Err("未匹配到任何链接");
+        }
     }
 
     return Err("未找到BV号");
@@ -76,12 +111,14 @@ pub async fn get_bv_info(bvid: &str) -> BVInfo {
     let pic = res["data"]["pic"].to_string().trim_matches('"').to_string();
     let title = res["data"]["title"].to_string();
     let owner_name = res["data"]["owner"]["name"].to_string();
+    let url = format!("https://www.bilibili.com/{}/", bvid);
     // let desc = res["data"]["desc"]
     BVInfo {
         desc,
         pic,
         title,
         owner_name,
+        url,
     }
     // println!("{}", res);
 }

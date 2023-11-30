@@ -23,7 +23,7 @@ async fn gpt_chat(conversations: &Vec<Conversation>) -> Result<Conversation, Str
     let url = String::from(APP_CONF.gpt_api.end_point.as_str());
     let json = json!({
         "messages":*conversations,
-        "model":"gpt-3.5-turbo-16k-0613",
+        "model":"gpt-3.5-turbo-16k",
         "temperature":1,
         // "stream":true,
     })

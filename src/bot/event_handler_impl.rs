@@ -50,6 +50,7 @@ impl EventHandler for MyBot {
             return;
         }
 
+
         let group_num = sender.get_group().id.to_string();
 
         // 用于总结的记录

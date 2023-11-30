@@ -8,11 +8,12 @@ use std::{
 use lazy_static::lazy_static;
 use rand::{thread_rng, Rng};
 use regex::Regex;
+use serde_json::Value;
 use std::process;
 
 use crate::{
     api::{
-        bilibili::{get_bv_info, get_latest_anime},
+        bilibili::{get_bv_info, get_info, get_latest_anime},
         gpt_chat::AI,
         magic::get_preview,
     },
@@ -136,36 +137,43 @@ impl MyBot {
     }
 
     pub async fn sniff_bilibili_video(msg: Message, sender: GroupSender) -> bool {
-        if !msg._type.eq("Plain") {
-            return false;
-        }
-
-        if msg.text.as_ref().unwrap().contains("bilibili.com") {
-            let index = msg.text.as_ref().unwrap().find("BV").unwrap_or_default();
-
-            let temp = &msg.text.as_ref().unwrap()[index..];
-            let end = temp
-                .find("?")
-                .unwrap_or(temp.find("/").unwrap_or(temp.len()));
-            let bvid = temp[..end].to_string();
-            tokio::task::spawn(async move {
-                let info = get_bv_info(&bvid).await;
-                let msg = MessageChain::new()
-                    .build_target(sender.get_group().id.to_string().as_str())
-                    .build_at(sender.get_id())
-                    .build_text(
-                        format!(
-                            "\n标题：{}\n作者: {}\n描述：{}\n",
-                            info.title, info.owner_name, info.desc
+        let text = match msg._type.as_str() {
+            "Plain" => msg.text.unwrap().to_string(),
+            "App" => {
+                let json = msg.content.unwrap();
+                let json: Value = serde_json::from_str(&json).unwrap();
+                println!("{:#?}", json);
+                let url = json["meta"]["detail_1"]["qqdocurl"].to_string();
+                println!("{}", url);
+                url.trim_matches('"').to_string()
+            }
+            _ => {
+                return false;
+            }
+        };
+        match get_info(&text).await {
+            Ok(info) => {
+                tokio::task::spawn(async move {
+                    let msg = MessageChain::new()
+                        .build_target(sender.get_group().id.to_string().as_str())
+                        .build_at(sender.get_id())
+                        .build_text(
+                            format!(
+                                "\n标题：{}\n作者: {}\n描述：{}\n链接：{}\n",
+                                info.title, info.owner_name, info.desc, info.url,
+                            )
+                            .as_str(),
                         )
-                        .as_str(),
-                    )
-                    .build_img(info.pic);
-                SENDER.clone().get().unwrap().send(msg).await.unwrap();
-            });
-            return true;
+                        .build_img(info.pic);
+                    SENDER.clone().get().unwrap().send(msg).await.unwrap();
+                });
+                return true;
+            }
+            Err(err) => {
+                println!("未成功获取bv信息！\n{}", err);
+                return false;
+            }
         }
-        return false;
     }
     pub async fn sniff_magic_chain(msg: Message, sender: &GroupSender) -> bool {
         if !msg._type.eq("Plain") {
@@ -316,7 +324,7 @@ impl MyBot {
                 continue;
             }
 
-            if text_len > 0 && Self::sniff_bilibili_video(ele.clone(), sender.clone()).await {
+            if Self::sniff_bilibili_video(ele.clone(), sender.clone()).await {
                 println!("bilibili");
                 continue;
             }
@@ -425,6 +433,9 @@ pub async fn try_answer(ask: Vec<Message>, group_num: String) {
         match ele._type.as_str() {
             // "Plain" | "Image" => (),
             "Plain" => {
+                if ele.text.as_ref().unwrap().len() < 2 {
+                    continue;
+                }
                 match get_nearest_answer(ele.text.as_ref().unwrap(), group_num.as_str()).await {
                     Some(answer) => {
                         println!("搜到答案，尝试回复！");
