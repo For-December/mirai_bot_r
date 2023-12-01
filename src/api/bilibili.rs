@@ -3,19 +3,18 @@ use std::collections::HashMap;
 use regex::Regex;
 use serde_json::Value;
 
-use super::web_utils::{get_utils, post_utils};
+use crate::api::web_utils::{get_utils, post_utils};
 
 pub async fn get_video_summary(bili_url: String) -> String {
     match post_utils(
         bili_url,
-        "http://localhost:987
-    6/ai",
+        "http://localhost:9876/ai/",
         HashMap::new(),
         HashMap::new(),
     )
     .await
     {
-        Ok(resp) => resp,
+        Ok(resp) => resp.replace("\\n","\n"),
         Err(err) => {
             format!("error: {}", err)
         }
@@ -111,7 +110,7 @@ pub async fn get_bv_info(bvid: &str) -> BVInfo {
     let pic = res["data"]["pic"].to_string().trim_matches('"').to_string();
     let title = res["data"]["title"].to_string();
     let owner_name = res["data"]["owner"]["name"].to_string();
-    let url = format!("https://www.bilibili.com/{}/", bvid);
+    let url = format!("https://www.bilibili.com/video/{}/", bvid);
     // let desc = res["data"]["desc"]
     BVInfo {
         desc,
@@ -135,5 +134,8 @@ mod test {
     #[tokio::test]
     pub async fn test_info() {
         get_bv_info("BV1Dg4y1973e").await;
+        let res =
+            get_video_summary(String::from("https://www.bilibili.com/video/BV1dw411B7BY/")).await;
+        println!("{}", res);
     }
 }

@@ -20,7 +20,8 @@ pub async fn post_utils(
         );
     });
     let res = reqwest::Client::builder()
-        .redirect(reqwest::redirect::Policy::none())
+        .no_proxy() // 取消系统代理
+        // .redirect(reqwest::redirect::Policy::none())
         .build()
         .unwrap()
         .post(url)

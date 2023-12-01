@@ -13,7 +13,7 @@ use std::process;
 
 use crate::{
     api::{
-        bilibili::{get_bv_info, get_info, get_latest_anime},
+        bilibili::{get_bv_info, get_info, get_latest_anime, get_video_summary},
         gpt_chat::AI,
         magic::get_preview,
     },
@@ -154,18 +154,31 @@ impl MyBot {
         match get_info(&text).await {
             Ok(info) => {
                 tokio::task::spawn(async move {
-                    let msg = MessageChain::new()
-                        .build_target(sender.get_group().id.to_string().as_str())
-                        .build_at(sender.get_id())
-                        .build_text(
-                            format!(
-                                "\n标题：{}\n作者: {}\n描述：{}\n链接：{}\n",
-                                info.title, info.owner_name, info.desc, info.url,
+                    {
+                        let msg = MessageChain::new()
+                            .build_target(sender.get_group().id.to_string().as_str())
+                            .build_at(sender.get_id())
+                            .build_text(
+                                format!(
+                                    "\n标题：{}\n作者: {}\n描述：{}\n链接：{}\n",
+                                    info.title, info.owner_name, info.desc, info.url,
+                                )
+                                .as_str(),
                             )
-                            .as_str(),
-                        )
-                        .build_img(info.pic);
-                    SENDER.clone().get().unwrap().send(msg).await.unwrap();
+                            .build_img(info.pic);
+                        SENDER.clone().get().unwrap().send(msg).await.unwrap();
+                    }
+
+                    {
+                        let msg = MessageChain::new()
+                            .build_target(sender.get_group().id.to_string().as_str())
+                            .build_at(sender.get_id())
+                            .build_text(&format!(
+                                "ai总结如下\n{}",
+                                get_video_summary(info.url).await
+                            ));
+                        SENDER.clone().get().unwrap().send(msg).await.unwrap();
+                    }
                 });
                 return true;
             }
