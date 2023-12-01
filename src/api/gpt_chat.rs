@@ -24,7 +24,7 @@ async fn gpt_chat(conversations: &Vec<Conversation>) -> Result<Conversation, Str
     let json = json!({
         "messages":*conversations,
         // "model":"gpt-3.5-turbo-16k",
-        "model":"gpt-4",
+        "model":"gpt-3.5-turbo-16k-0613",
         "temperature":1,
         // "stream":true,
     })

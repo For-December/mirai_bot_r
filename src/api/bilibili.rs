@@ -14,7 +14,7 @@ pub async fn get_video_summary(bili_url: String) -> String {
     )
     .await
     {
-        Ok(resp) => resp.replace("\\n","\n"),
+        Ok(resp) => resp.replace("\\n", "\n"),
         Err(err) => {
             format!("error: {}", err)
         }
@@ -53,19 +53,19 @@ pub struct BVInfo {
     pub owner_name: String,
     pub url: String,
 }
-pub async fn get_info(text: &str) -> Result<BVInfo, &str> {
-    if text.contains("bilibili.com") {
+pub async fn get_info(text: &str) -> Result<BVInfo, String> {
+    if text.contains("bilibili.com/video/") {
         // 直接获取bv
-        return Ok(get_bv_info(get_bv(text)).await);
+        return Ok(get_bv_info(get_bv(text)?).await);
     }
-    if text.contains("b23.tv") {
+    if text.contains("b23.tv/") {
         // 间接获取bv
         let re = Regex::new(r"(https://b23.tv/\S+)[?/]?").unwrap();
         if let Some(captures) = re.captures(&text) {
             let url = captures.get(1).map_or("", |m| m.as_str());
             // 如果是None则返回""，否则转变为&str并返回
             if url.is_empty() {
-                return Err("未找到合适的链接");
+                return Err(String::from("未找到合适的链接"));
             }
 
             println!("{}", url);
@@ -74,21 +74,25 @@ pub async fn get_info(text: &str) -> Result<BVInfo, &str> {
                 .await
                 .unwrap();
             println!("url is=> {}", url);
-            return Ok(get_bv_info(get_bv(&url)).await);
+            return Ok(get_bv_info(get_bv(&url)?).await);
         } else {
-            return Err("未匹配到任何链接");
+            return Err(String::from("未匹配到任何链接"));
         }
     }
 
-    return Err("未找到BV号");
+    return Err(String::from("未找到BV号"));
 }
-fn get_bv<'a>(url: &'a str) -> &'a str {
-    let index = url.find("BV").unwrap_or_default();
-    let temp = &url[index..];
-    let end = temp
-        .find("?")
-        .unwrap_or(temp.find("/").unwrap_or(temp.len()));
-    &temp[..end]
+fn get_bv<'a>(url: &'a str) -> Result<&'a str, String> {
+    match url.find("BV") {
+        Some(index) => {
+            let temp = &url[index..];
+            let end = temp
+                .find("?")
+                .unwrap_or(temp.find("/").unwrap_or(temp.len()));
+            Ok(&temp[..end])
+        }
+        None => Err(String::from("未匹配到bv号")),
+    }
 }
 pub async fn get_bv_info(bvid: &str) -> BVInfo {
     let url = "https://api.bilibili.com/x/web-interface/view";

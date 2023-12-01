@@ -19,7 +19,7 @@ pub async fn post_utils(
             HeaderValue::from_str(*v).unwrap(),
         );
     });
-    let res = reqwest::Client::builder()
+    match reqwest::Client::builder()
         .no_proxy() // 取消系统代理
         // .redirect(reqwest::redirect::Policy::none())
         .build()
@@ -30,27 +30,28 @@ pub async fn post_utils(
         .headers(header_map.clone())
         .send()
         .await
-        .unwrap_or_else(|err| {
+    {
+        Ok(res) => match res.status() {
+            StatusCode::OK => {
+                let res = res.text().await.unwrap();
+                Ok(res)
+            }
+            code => {
+                println!("POST url is {url}");
+                println!("headers are {:#?}", header_map);
+                println!("Body json is {json}");
+                println!("query is {:#?}", query);
+                println!("resp body is {}", res.text().await.unwrap_or_default());
+                Err(format!("RESPONSE error code: {}", code))
+            }
+        },
+        Err(err) => {
             println!("POST req error: {err}");
             println!("POST url is {url}");
             println!("headers are {:#?}", header_map);
             println!("Body json is {json}");
             println!("query is {:#?}", query);
-            process::exit(1);
-        });
-
-    match res.status() {
-        StatusCode::OK => {
-            let res = res.text().await.unwrap();
-            Ok(res)
-        }
-        code => {
-            println!("POST url is {url}");
-            println!("headers are {:#?}", header_map);
-            println!("Body json is {json}");
-            println!("query is {:#?}", query);
-            println!("resp body is {}", res.text().await.unwrap_or_default());
-            Err(format!("RESPONSE error code: {}", code))
+            Err(String::from(err.to_string()))
         }
     }
 
