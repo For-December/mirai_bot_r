@@ -50,14 +50,12 @@ impl EventHandler for MyBot {
             return;
         }
 
-
         let group_num = sender.get_group().id.to_string();
 
         // 用于总结的记录
         tokio::task::spawn(accumulate_msg(message_chain.clone(), sender.clone()));
-        // 用于偷听的记录
-        tokio::task::spawn(Self::chat_listen(message_chain.clone(), sender.clone()));
 
+        // 艾特指令
         if message_chain.len() == 2
             && message_chain[0]._type.eq("At")
             && message_chain[1]._type.eq("Plain")
@@ -137,6 +135,15 @@ impl EventHandler for MyBot {
                 tokio::task::spawn(Self::bilibili_instruction(sender.clone()));
                 return;
             }
+            if message_chain[1]
+                .text
+                .as_ref()
+                .unwrap()
+                .contains("recommendations")
+            {
+                tokio::task::spawn(Self::bilibili_recommendations(sender.clone()));
+                return;
+            }
             if message_chain[1].text.as_ref().unwrap().contains("magnet:?") {
                 let ans = MessageChain::new()
                     .build_target(&group_num)
@@ -156,8 +163,21 @@ impl EventHandler for MyBot {
                 return;
             }
 
+            if message_chain[1].text.as_ref().unwrap().contains("screen") {
+                let msg = message_chain[1].text.as_ref().unwrap();
+                let index = msg.find("http").unwrap();
+                let url = msg[index..].to_string();
+                println!("{}", url);
+                tokio::spawn(Self::get_screenshot(url, sender.clone()));
+                return;
+            }
+
             tokio::task::spawn(Self::ai_chat(message_chain.clone(), sender.clone()));
+            return;
         }
+
+        // 用于偷听的记录
+        tokio::task::spawn(Self::chat_listen(message_chain.clone(), sender.clone()));
 
         let is_mute = Arc::clone(&IS_MUTE);
         if is_mute.load(Ordering::Acquire) {

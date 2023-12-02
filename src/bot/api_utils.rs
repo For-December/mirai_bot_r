@@ -3,10 +3,7 @@ use reqwest::StatusCode;
 use serde_json::Value;
 
 use crate::setup::conf::APP_CONF;
-use std::{
-    collections::HashMap,
-    io::Cursor, process,
-};
+use std::{collections::HashMap, io::Cursor, process};
 pub async fn post_msg(json: String, api_path: &str, session_key: &str) -> Result<String, String> {
     // println!("{}", APP_CONF.base_url.clone() + api_path);
     let res = reqwest::Client::new()
@@ -46,7 +43,10 @@ pub async fn get_msg(
     session_key: &str,
 ) -> Result<String, Box<dyn std::error::Error>> {
     // println!("{}", APP_CONF.base_url.clone() + api_path);
-    let mut req_builder = reqwest::Client::new()
+    let mut req_builder = reqwest::Client::builder()
+        .no_proxy()
+        .build()
+        .unwrap()
         .get(&(APP_CONF.base_url.clone() + api_path))
         .header("sessionKey", session_key);
     for ele in map {
@@ -57,7 +57,33 @@ pub async fn get_msg(
 
     Ok(res)
 }
+pub async fn get_bytes_with_body(url: &str, body: String) -> Result<String, String> {
+    // println!("{}", APP_CONF.base_url.clone() + api_path);
+    let req_builder = reqwest::Client::builder()
+        .no_proxy()
+        .build()
+        .unwrap()
+        .post(url)
+        .body(body);
+    let resp = req_builder.send().await.unwrap();
+    if resp.status().is_success() {
+        let image_byte = resp.bytes().await.unwrap();
+        let img = image::load_from_memory(&image_byte).unwrap();
+        img.resize(
+            img.width() / 3,
+            img.height() / 3,
+            image::imageops::FilterType::CatmullRom,
+        );
 
+        let mut bytes: Vec<u8> = Vec::new();
+        img.write_to(&mut Cursor::new(&mut bytes), image::ImageOutputFormat::Png)
+            .unwrap();
+        let base64_img = general_purpose::STANDARD_NO_PAD.encode(bytes);
+        Ok(base64_img)
+    } else {
+        Err(format!("{:#?}", resp))
+    }
+}
 pub async fn get_bytes(url: &str) -> Result<String, String> {
     // println!("{}", APP_CONF.base_url.clone() + api_path);
     let req_builder = reqwest::Client::new().get(url);
@@ -89,13 +115,21 @@ pub async fn get_bytes(url: &str) -> Result<String, String> {
 
 #[cfg(test)]
 pub mod test {
-    use super::get_bytes;
+    use super::{get_bytes, get_bytes_with_body};
 
     #[tokio::test]
     async fn test_base64() {
         let res = get_bytes("https://whatslink.info/image/6d89f8c9437ac9b9824b4ca1020db1a8")
             .await
             .unwrap();
+        println!("{}", res);
+
+        let res = get_bytes_with_body(
+            "http://localhost:9876/screen",
+            String::from("https://www.baidu.com"),
+        )
+        .await
+        .unwrap();
         println!("{}", res);
     }
 }

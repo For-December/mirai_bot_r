@@ -76,6 +76,7 @@ pub async fn get_utils(
         );
     });
     let res = reqwest::Client::builder()
+        .no_proxy()
         .redirect(reqwest::redirect::Policy::none())
         .build()
         .unwrap()
@@ -121,6 +122,11 @@ pub async fn get_utils(
 mod test {
     use std::collections::HashMap;
 
+    use crate::{
+        api::web_utils::post_utils,
+        setup::conf::{AppConfig, APP_CONF},
+    };
+
     use super::get_utils;
 
     #[tokio::test]
@@ -131,6 +137,22 @@ mod test {
             "https://b23.tv/5V59Vpv",
             HashMap::new(),
             HashMap::new(),
+        )
+        .await
+        .unwrap();
+        println!("{}", res);
+    }
+
+    #[tokio::test]
+    async fn test_get() {
+        let res = get_utils(
+            String::new(),
+            // "https://b23.tv/L542xQG",
+            "https://api.bilibili.com/x/web-interface/index/top/rcmd",
+            HashMap::new(),
+            vec![("Cookie", APP_CONF.bilibili.cookies.as_str())]
+                .into_iter()
+                .collect(),
         )
         .await
         .unwrap();

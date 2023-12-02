@@ -13,7 +13,7 @@ use std::process;
 
 use crate::{
     api::{
-        bilibili::{get_bv_info, get_info, get_latest_anime, get_video_summary},
+        bilibili::{get_bv_info, get_info, get_latest_anime, get_rcmd, get_video_summary},
         gpt_chat::AI,
         magic::get_preview,
     },
@@ -23,7 +23,12 @@ use crate::{
     SENDER,
 };
 
-use super::{api_utils::get_bytes, group::GroupSender, message::Message, my_bot::MyBot};
+use super::{
+    api_utils::{get_bytes, get_bytes_with_body},
+    group::GroupSender,
+    message::Message,
+    my_bot::MyBot,
+};
 impl AI for MyBot {}
 impl MyBot {
     pub async fn control_instrument(message_chain: &Vec<Message>, group_num: &str) -> bool {
@@ -136,6 +141,26 @@ impl MyBot {
         SENDER.clone().get().unwrap().send(msg).await.unwrap();
     }
 
+    pub async fn get_screenshot(url: String, sender: GroupSender) -> bool {
+        match get_bytes_with_body("http://localhost:9876/screen", url).await {
+            Ok(base64) => {
+                let msg = MessageChain::new()
+                    .build_target(sender.get_group().id.to_string().as_str())
+                    .build_at(sender.get_id())
+                    .build_img(base64);
+                SENDER.clone().get().unwrap().send(msg).await.unwrap();
+                return true;
+            }
+            Err(err) => {
+                let msg = MessageChain::new()
+                    .build_target(sender.get_group().id.to_string().as_str())
+                    .build_at(sender.get_id())
+                    .build_text(&format!("出错了：{}", err));
+                SENDER.clone().get().unwrap().send(msg).await.unwrap();
+                return false;
+            }
+        }
+    }
     pub async fn sniff_bilibili_video(msg: Message, sender: GroupSender) -> bool {
         let text = match msg._type.as_str() {
             "Plain" => msg.text.unwrap().to_string(),
@@ -225,7 +250,26 @@ impl MyBot {
             ans.ref_build_img(ele.2.to_string().trim_matches('\"').to_string());
         }
         SENDER.clone().get().unwrap().send(ans).await.unwrap();
+        return true;
+    }
 
+    pub async fn bilibili_recommendations(sender: GroupSender) -> bool {
+        let res = get_rcmd().await;
+        let mut ans = MessageChain::new()
+            .build_target(sender.get_group().id.to_string().as_str())
+            .build_at(sender.get_id())
+            .build_text("\n今日份哔哩哔哩视频推荐：\n");
+        let mut count = 0;
+        for ele in &res {
+            count += 1;
+            if count > 5 {
+                break;
+            }
+            ans.ref_build_text((ele.2.to_string() + "\n").as_str());
+            ans.ref_build_text((ele.0.to_string() + "\n").as_str());
+            ans.ref_build_img(ele.1.to_string().trim_matches('\"').to_string() + "\n");
+        }
+        SENDER.clone().get().unwrap().send(ans).await.unwrap();
         return true;
     }
 

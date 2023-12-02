@@ -10,6 +10,11 @@ pub struct AppConfig {
     pub bot_group: String,
     pub wx_api: WXApi,
     pub gpt_api: GPTApi,
+    pub bilibili: BiliBili,
+}
+#[derive(Debug, Deserialize)]
+pub struct BiliBili {
+    pub cookies: String,
 }
 
 #[derive(Debug, Deserialize)]

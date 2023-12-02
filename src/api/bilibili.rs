@@ -3,7 +3,10 @@ use std::collections::HashMap;
 use regex::Regex;
 use serde_json::Value;
 
-use crate::api::web_utils::{get_utils, post_utils};
+use crate::{
+    api::web_utils::{get_utils, post_utils},
+    setup::conf::APP_CONF,
+};
 
 pub async fn get_video_summary(bili_url: String) -> String {
     match post_utils(
@@ -19,6 +22,32 @@ pub async fn get_video_summary(bili_url: String) -> String {
             format!("error: {}", err)
         }
     }
+}
+
+// url+pic+title
+pub async fn get_rcmd() -> Vec<(String, String, String)> {
+    let res = get_utils(
+        String::new(),
+        "https://api.bilibili.com/x/web-interface/index/top/rcmd",
+        vec![("version", "1")].into_iter().collect(),
+        vec![("Cookie", APP_CONF.bilibili.cookies.as_str())]
+            .into_iter()
+            .collect(),
+    )
+    .await
+    .unwrap();
+    let res: Value = serde_json::from_str(&res).unwrap();
+    let rcmd: Vec<Value> = serde_json::from_str(&res["data"]["item"].to_string()).unwrap();
+    let mut rcmd_tuple = Vec::new();
+    for ele in rcmd {
+        rcmd_tuple.push((
+            ele["uri"].to_string(),
+            ele["pic"].to_string(),
+            ele["title"].to_string(),
+        ));
+    }
+
+    return rcmd_tuple;
 }
 
 pub async fn get_latest_anime() -> Vec<(String, String, String)> {
