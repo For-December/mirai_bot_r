@@ -1,6 +1,7 @@
 use crate::bot::message::Message;
 use async_lazy::Lazy;
 use chrono::Local;
+use log::info;
 use serde_json::Value;
 use sqlx::{types::time::PrimitiveDateTime, FromRow, MySql, MySqlPool, Pool};
 use time::macros::format_description;
@@ -106,8 +107,8 @@ pub async fn set_ask_answer(
     .await
     .expect("添加失败！");
     // });
-    println!(
-        "\n\n\n数据添加成功!$$$\n--group:{}\n--ask:{}\n--answer:{}\n$$$$$$$$$\n\n",
+    info!(
+        "数据添加成功!$$$\n--group:{}\n--ask:{}\n--answer:{}\n$$$$$$$$$\n",
         group_id, ask, answer
     );
 }

@@ -1,11 +1,40 @@
-use env_logger::Env;
+use chrono::Local;
+use env_logger::{fmt::Color, Env};
+use std::io::Write;
 // use std::collections::HashMap;
 use mirai_bot::run;
 // use tokio::sync::mpsc;
+fn init_log() {
+    env_logger::Builder::from_env(Env::default().default_filter_or("info"))
+        .format(|buf, record| {
+            let level_color = match record.level() {
+                log::Level::Error => Color::Red,
+                log::Level::Warn => Color::Yellow,
+                log::Level::Info => Color::Green,
+                log::Level::Debug | log::Level::Trace => Color::Cyan,
+            };
+
+            let mut level_style = buf.style();
+            level_style.set_color(level_color).set_bold(true);
+
+            let mut style = buf.style();
+            style.set_color(Color::White).set_dimmed(true);
+
+            writeln!(
+                buf,
+                "{} {} [ {} ] {}",
+                Local::now().format("%Y-%m-%d %H:%M:%S"),
+                level_style.value(record.level()),
+                style.value(record.module_path().unwrap_or("<unnamed>")),
+                record.args()
+            )
+        })
+        .init();
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    log::info!("好好好");
+    init_log();
 
     run().await?;
     Ok(())

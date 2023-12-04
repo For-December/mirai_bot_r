@@ -5,6 +5,7 @@ use std::{
 
 use super::{group::GroupSender, message::Message};
 use lazy_static::lazy_static;
+use log::info;
 lazy_static! {
     static ref CONVERSATIONS: Arc<Mutex<HashMap<String, VecDeque<String>>>> =
         Arc::new(Mutex::new(HashMap::new()));
@@ -29,7 +30,7 @@ pub async fn accumulate_msg(message_chain: Vec<Message>, sender: GroupSender) {
         }
         data.push_str(&msg);
     }
-    println!("data::{}", data);
+    info!("{} => {}", sender.get_group().name, data);
     let cons_map = Arc::clone(&CONVERSATIONS);
 
     let mut cons_map = cons_map.lock().unwrap();
