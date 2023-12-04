@@ -474,17 +474,20 @@ pub async fn get_ask(
     sender: &GroupSender,
 ) -> Option<(String, Vec<Message>)> {
     let global_msg_map_rw = Arc::clone(&GLOBAL_MSG); // 带读写锁的
+
+    {
+        // 写操作(结束释放锁)
+        let mut global_msg_map_w = global_msg_map_rw.write().unwrap();
+
+        if !global_msg_map_w.contains_key(&sender.get_group().id) {
+            global_msg_map_w.insert(sender.get_group().id, Mutex::new(Vec::new()));
+        }
+    }
+
+    // 读操作
+
     let global_msg_map_r = global_msg_map_rw.read().unwrap(); // 读
-    let global_msg = global_msg_map_r
-        .get(&sender.get_group().id)
-        .unwrap_or_else(|| {
-            // 不存在key则插入
-            global_msg_map_rw
-                .write()
-                .unwrap()
-                .insert(sender.get_group().id, Mutex::new(Vec::new()));
-            global_msg_map_r.get(&sender.get_group().id).unwrap()
-        });
+    let global_msg = global_msg_map_r.get(&sender.get_group().id).unwrap();
     let mut global_msg = global_msg.lock().unwrap();
     match global_msg.len() {
         0 => {
