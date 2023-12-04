@@ -1,8 +1,9 @@
+use crate::bot::message::Message;
 use async_lazy::Lazy;
+use chrono::Local;
 use serde_json::Value;
 use sqlx::{types::time::PrimitiveDateTime, FromRow, MySql, MySqlPool, Pool};
-
-use crate::bot::message::Message;
+use time::macros::format_description;
 
 #[derive(Debug, FromRow, Default)]
 #[allow(dead_code)]
@@ -83,14 +84,23 @@ pub async fn set_ask_answer(
     answer: &Vec<Message>,
 ) {
     let answer = serde_json::to_value(answer).unwrap();
+    let create_time = PrimitiveDateTime::parse(
+        Local::now()
+            .format("%Y-%m-%d %H:%M:%S")
+            .to_string()
+            .as_str(),
+        format_description!("[year]-[month]-[day] [hour]:[minute]:[second]"),
+    )
+    .unwrap();
     // 原来之前的报错是返回值类型不匹配啊，没有解包
     sqlx::query!(
-        "INSERT INTO ask_answer(group_id,asker_id,replier_id,ask_text,answer) VALUES(?,?,?,?,?)",
+        "INSERT INTO ask_answer(group_id,asker_id,replier_id,ask_text,answer,create_time) VALUES(?,?,?,?,?,?)",
         group_id,
         asker_id,
         replier_id,
         ask,
         answer,
+        create_time
     )
     .execute(MYSQL_POOL.force().await)
     .await

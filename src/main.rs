@@ -1,11 +1,11 @@
+use env_logger::Env;
 // use std::collections::HashMap;
 use mirai_bot::run;
 // use tokio::sync::mpsc;
 
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-
+    log::info!("好好好");
 
     run().await?;
     Ok(())
@@ -13,11 +13,44 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 #[cfg(test)]
 mod test {
+    use chrono::Local;
+    use env_logger::{fmt::Color, Env};
+    use std::io::Write;
 
+    #[test]
+    pub fn test_log() {
+        env_logger::Builder::from_env(Env::default().default_filter_or("debug"))
+            .format(|buf, record| {
+                let level_color = match record.level() {
+                    log::Level::Error => Color::Red,
+                    log::Level::Warn => Color::Yellow,
+                    log::Level::Info => Color::Green,
+                    log::Level::Debug | log::Level::Trace => Color::Cyan,
+                };
+
+                let mut level_style = buf.style();
+                level_style.set_color(level_color).set_bold(true);
+
+                let mut style = buf.style();
+                style.set_color(Color::White).set_dimmed(true);
+
+                writeln!(
+                    buf,
+                    "{} {} [ {} ] {}",
+                    Local::now().format("%Y-%m-%d %H:%M:%S"),
+                    level_style.value(record.level()),
+                    style.value(record.module_path().unwrap_or("<unnamed>")),
+                    record.args()
+                )
+            })
+            .init();
+
+        log::info!("好好好");
+        log::error!("错！");
+    }
     #[test]
     pub fn test() {
         use std::process::Command;
-
         let command = "aitaffy.py"; // 将要执行的 cmd 命令
 
         let output = Command::new("py")
