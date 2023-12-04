@@ -97,7 +97,7 @@ pub async fn set_ask_answer(
     .expect("添加失败！");
     // });
     println!(
-        "数据添加成功, \ngroup:{}\nask:{}\nanswer:{}",
+        "数据添加成功!$$$\n--group:{}\n--ask:{}\n--answer:{}\n$$$$$$",
         group_id, ask, answer
     );
 }
