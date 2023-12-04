@@ -96,7 +96,7 @@ pub async fn set_ask_answer(
     .await
     .expect("添加失败！");
     // });
-    println!("数据添加成功, ask:{}", ask);
+    println!("数据添加成功, \nask:{}\nanswer:{}", ask, answer);
 }
 
 #[cfg(test)]
