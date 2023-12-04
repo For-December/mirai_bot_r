@@ -1,6 +1,7 @@
 use std::{
+    collections::HashMap,
     process::exit,
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, RwLock},
     thread::sleep,
     time::Duration,
 };
@@ -207,8 +208,8 @@ impl MyBot {
                 });
                 return true;
             }
-            Err(err) => {
-                println!("未成功获取bv信息！\n{}", err);
+            Err(_) => {
+                // println!("未成功获取bv信息！\n{}", err);
                 return false;
             }
         }
@@ -398,7 +399,8 @@ impl MyBot {
             new_message_chain.push(ele);
         }
 
-        // 如果没有ask，直接当作ask存进去，否则读出ask
+        // 如果没有ask，直接当作ask存进去，否则读出ask，ask和群号关联
+        // 是查询当前群号对应的 Vec，当有一个ask的时候当前作为answer
         let ask = get_ask(&new_message_chain, &sender).await;
 
         // 读出了 ask，则当前新消息就是answer
@@ -462,15 +464,27 @@ impl MyBot {
     }
 }
 lazy_static! {
-    static ref GLOBAL_MSG: Arc<Mutex<Vec<(String, Vec<Message>)>>> =
-        Arc::new(Mutex::new(Vec::new()));
+    // Arc<RwLock<HashMap<String, Arc<Mutex<Vec<Conversation>>>>>>
+    static ref GLOBAL_MSG: Arc<RwLock<HashMap<i64,Mutex<Vec<(String, Vec<Message>)>>>>>
+    =Arc::new(RwLock::new(HashMap::new()));
 }
 
 pub async fn get_ask(
     message_chain: &Vec<Message>,
     sender: &GroupSender,
 ) -> Option<(String, Vec<Message>)> {
-    let global_msg = Arc::clone(&GLOBAL_MSG);
+    let global_msg_map_rw = Arc::clone(&GLOBAL_MSG); // 带读写锁的
+    let global_msg_map_r = global_msg_map_rw.read().unwrap(); // 读
+    let global_msg = global_msg_map_r
+        .get(&sender.get_group().id)
+        .unwrap_or_else(|| {
+            // 不存在key则插入
+            global_msg_map_rw
+                .write()
+                .unwrap()
+                .insert(sender.get_group().id, Mutex::new(Vec::new()));
+            global_msg_map_r.get(&sender.get_group().id).unwrap()
+        });
     let mut global_msg = global_msg.lock().unwrap();
     match global_msg.len() {
         0 => {
