@@ -162,6 +162,37 @@ impl MyBot {
             }
         }
     }
+    pub async fn sniff_url(msg: Message, sender: GroupSender) -> bool {
+        let text = match msg._type.as_str() {
+            "App" => {
+                let json = msg.content.unwrap();
+                let json: Value = serde_json::from_str(&json).unwrap();
+                println!("{:#?}", json);
+                let url = json["meta"]["detail_1"]["qqdocurl"].to_string();
+                println!("{}", url);
+                url.trim_matches('"').to_string()
+            }
+            _ => {
+                return false;
+            }
+        };
+        let url = text.trim_matches('\"');
+        let re = Regex::new(r"(https://\S+)\?|$").unwrap(); // 匹配问号或字符串结尾
+        if let Some(captures) = re.captures(&url) {
+            let url = captures.get(1).map_or("", |m| m.as_str());
+            // 如果是None则返回""，否则转变为&str并返回
+            if url.is_empty() {
+                return false;
+            }
+            let msg = MessageChain::new()
+                .build_target(sender.get_group().id.to_string().as_str())
+                .build_text(&format!("上面那个小程序的链接为:\n{}", url));
+            SENDER.clone().get().unwrap().send(msg).await.unwrap();
+            return true;
+        } else {
+            return false;
+        }
+    }
     pub async fn sniff_bilibili_video(msg: Message, sender: GroupSender) -> bool {
         let text = match msg._type.as_str() {
             "Plain" => msg.text.unwrap().to_string(),
@@ -384,6 +415,11 @@ impl MyBot {
 
             if Self::sniff_bilibili_video(ele.clone(), sender.clone()).await {
                 println!("bilibili");
+                continue;
+            }
+
+            if Self::sniff_url(ele.clone(), sender.clone()).await {
+                println!("zhihu");
                 continue;
             }
 

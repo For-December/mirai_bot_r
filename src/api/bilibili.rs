@@ -89,7 +89,7 @@ pub async fn get_info(text: &str) -> Result<BVInfo, String> {
     }
     if text.contains("b23.tv/") {
         // 间接获取bv
-        let re = Regex::new(r"(https://b23.tv/\S+)[?/]?").unwrap();
+        let re = Regex::new(r"(https://b23.tv/\S+)\?|$").unwrap();
         if let Some(captures) = re.captures(&text) {
             let url = captures.get(1).map_or("", |m| m.as_str());
             // 如果是None则返回""，否则转变为&str并返回
