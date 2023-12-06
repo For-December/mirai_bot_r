@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
-use serde_json::json;
+use serde_json::{json, Value};
 
 use crate::{api::web_utils::ApiParam, setup::conf::APP_CONF};
 
 use super::{baidu_api::get_access_token, web_utils::post_utils};
 
-pub async fn get_text(url: &str) -> String {
+pub async fn get_text(url: &str) -> Vec<String> {
     let res = post_utils(ApiParam {
         url: "https://aip.baidubce.com/rest/2.0/ocr/v1/general_basic",
         query: vec![(
@@ -17,14 +17,19 @@ pub async fn get_text(url: &str) -> String {
         )]
         .into_iter()
         .collect(),
+        form: vec![("url", url)].into_iter().collect(),
         ..Default::default()
     })
     .await
     .unwrap();
 
-    println!("{}", res);
+    let res: Value = serde_json::from_str(&res).unwrap();
+    let res = res["words_result"].as_array().unwrap().to_owned();
 
-    String::new()
+    let res: Vec<String> = res.into_iter().map(|v| v["words"].to_string()).collect();
+    println!("{:#?}", res);
+
+    res
 }
 
 #[cfg(test)]
