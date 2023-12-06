@@ -1,4 +1,6 @@
 pub mod aitaffy;
+pub mod baidu_api;
+pub mod baidu_ocr;
 pub mod bilibili;
 pub mod chatgpt;
 pub mod gpt_chat;
@@ -6,4 +8,3 @@ pub mod magic;
 pub mod tian_song;
 pub mod web_utils;
 pub mod wx_chat;
-pub mod baidu_api;

@@ -8,13 +8,14 @@ use crate::{
     setup::conf::APP_CONF,
 };
 
+use super::web_utils::ApiParam;
+
 pub async fn get_video_summary(bili_url: String) -> String {
-    match post_utils(
-        bili_url,
-        "http://localhost:9876/ai/",
-        HashMap::new(),
-        HashMap::new(),
-    )
+    match post_utils(ApiParam {
+        json: bili_url,
+        url: "http://localhost:9876/ai/",
+        ..Default::default()
+    })
     .await
     {
         Ok(resp) => resp.replace("\\n", "\n"),

@@ -1,24 +1,33 @@
 use std::{collections::HashMap, process, str::FromStr};
 
+use image::codecs::qoi;
 use regex::Regex;
 use reqwest::{
     header::{HeaderMap, HeaderName, HeaderValue},
     StatusCode,
 };
 
-pub async fn post_utils(
-    json: String,
-    url: &str,
-    query: HashMap<&str, &str>,
-    headers: HashMap<&str, &str>,
-) -> Result<String, String> {
+#[derive(Debug, Clone, Default)]
+pub struct ApiParam<'a> {
+    pub url: &'a str,
+    pub json: String,
+    pub query: HashMap<&'a str, &'a str>,
+    pub headers: HashMap<&'a str, &'a str>,
+    pub form: HashMap<&'a str, &'a str>,
+}
+
+pub async fn post_utils<'a>(api_param: ApiParam<'a>) -> Result<String, String> {
     let mut header_map = HeaderMap::new();
-    headers.iter().for_each(|(k, v)| {
+    api_param.headers.iter().for_each(|(k, v)| {
         header_map.insert(
             HeaderName::from_str(*k).unwrap(),
             HeaderValue::from_str(*v).unwrap(),
         );
     });
+    let url = api_param.url;
+    let query = api_param.query;
+    let json = api_param.json;
+    let form = api_param.form;
     match reqwest::Client::builder()
         .no_proxy() // 取消系统代理
         // .redirect(reqwest::redirect::Policy::none())
@@ -28,6 +37,7 @@ pub async fn post_utils(
         .query(&query)
         .body(json.clone())
         .headers(header_map.clone())
+        .form(&form)
         .send()
         .await
     {
@@ -41,6 +51,7 @@ pub async fn post_utils(
                 println!("headers are {:#?}", header_map);
                 println!("Body json is {json}");
                 println!("query is {:#?}", query);
+                println!("form is {:#?}", form);
                 println!("resp body is {}", res.text().await.unwrap_or_default());
                 Err(format!("RESPONSE error code: {}", code))
             }
@@ -51,6 +62,7 @@ pub async fn post_utils(
             println!("headers are {:#?}", header_map);
             println!("Body json is {json}");
             println!("query is {:#?}", query);
+            println!("form is {:#?}", form);
             Err(String::from(err.to_string()))
         }
     }

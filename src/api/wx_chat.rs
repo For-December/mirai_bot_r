@@ -2,10 +2,12 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
-use crate::{api::baidu_api::get_access_token, setup::conf::APP_CONF};
+use crate::{
+    api::{baidu_api::get_access_token, web_utils::ApiParam},
+    setup::conf::APP_CONF,
+};
 use std::{
     collections::HashMap,
-    process,
     sync::{Arc, Mutex, RwLock},
 };
 
@@ -25,13 +27,20 @@ async fn wx_chat(
     let url = String::from("https://aip.baidubce.com/")
         + "rpc/2.0/ai_custom/v1/wenxinworkshop/chat/eb-instant?"
         + "access_token="
-        + get_access_token().await.as_str();
+        + get_access_token(&APP_CONF.wx_api.api_key, &APP_CONF.wx_api.secret_key)
+            .await
+            .as_str();
     let json = json!({
         "messages":*conversations,
         "system": format!("首先，你是由名为`flycat`的人开发的智能聊天机器人。请记住，你的名字叫`小A`。现在这整轮的对话都是由用户`{}`发起的，请记住这个名字。现在和你对话的人昵称是`{}`",user_name,user_name),
     })
     .to_string();
-    let res = post_utils(json, &url, HashMap::new(), HashMap::new()).await?;
+    let res = post_utils(ApiParam {
+        json,
+        url: &url,
+        ..Default::default()
+    })
+    .await?;
     let answer: Value = serde_json::from_str(&res)?;
     let content = answer["result"].to_string();
     if content.is_empty() {

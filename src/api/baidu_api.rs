@@ -2,24 +2,24 @@ use std::{collections::HashMap, process};
 
 use serde_json::Value;
 
-use crate::{api::web_utils::post_utils, setup::conf::APP_CONF};
+use crate::api::web_utils::{post_utils, ApiParam};
 
-pub async fn get_access_token() -> String {
+pub async fn get_access_token(api_key: &str, secret_key: &str) -> String {
     // 查询参数
     let mut query = HashMap::new();
     query.insert("grant_type", "client_credentials");
-    query.insert("client_id", &&APP_CONF.wx_api.api_key.as_str());
-    query.insert("client_secret", &APP_CONF.wx_api.secret_key.as_str());
+    query.insert("client_id", api_key);
+    query.insert("client_secret", secret_key);
 
     // 请求头
     let mut headers = HashMap::new();
     headers.insert("Content-Type", "application/x-www-form-urlencoded");
-    let res = post_utils(
-        String::new(),
-        "https://aip.baidubce.com/oauth/2.0/token",
+    let res = post_utils(ApiParam {
+        url: "https://aip.baidubce.com/oauth/2.0/token",
         query,
         headers,
-    )
+        ..Default::default()
+    })
     .await
     .unwrap_or_else(|err| {
         println!("get access token error: {err}");

@@ -9,6 +9,7 @@ pub struct AppConfig {
     pub bot_qq: String,
     pub bot_group: String,
     pub wx_api: WXApi,
+    pub baidu_ocr: BaiduOCR,
     pub gpt_api: GPTApi,
     pub bilibili: BiliBili,
 }
@@ -19,6 +20,12 @@ pub struct BiliBili {
 
 #[derive(Debug, Deserialize)]
 pub struct WXApi {
+    pub api_key: String,
+    pub secret_key: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct BaiduOCR {
     pub api_key: String,
     pub secret_key: String,
 }

@@ -11,7 +11,7 @@ use std::{
     vec,
 };
 
-use super::web_utils::post_utils;
+use super::web_utils::{post_utils, ApiParam};
 use lazy_static::lazy_static;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -36,7 +36,14 @@ async fn gpt_chat(conversations: &Vec<Conversation>) -> Result<Conversation, Str
         ("Content-type", "application/json"),
     ];
     let headers: HashMap<_, _> = headers.into_iter().collect();
-    match post_utils(json, &url, HashMap::new(), headers).await {
+    match post_utils(ApiParam {
+        json,
+        url: &url,
+        headers,
+        ..Default::default()
+    })
+    .await
+    {
         Ok(res) => {
             // .unwrap_or_else(|err| {
             //     println!("{}", err);
