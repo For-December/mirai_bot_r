@@ -6,7 +6,10 @@ use super::{
     my_bot::MyBot,
     summary_msg::accumulate_msg,
 };
-use crate::SENDER;
+use crate::{
+    api::baidu_ocr::{self, get_ocr_text},
+    SENDER,
+};
 use async_trait::async_trait;
 // use rand::{thread_rng, Rng};
 
@@ -56,124 +59,145 @@ impl EventHandler for MyBot {
         tokio::task::spawn(accumulate_msg(message_chain.clone(), sender.clone()));
 
         // 艾特指令
-        if message_chain.len() == 2
-            && message_chain[0]._type.eq("At")
+        if message_chain[0]._type.eq("At")
             && message_chain[1]._type.eq("Plain")
             && message_chain[0].target.unwrap().to_string().eq(&self.qq)
         {
-            if message_chain[1].text.as_ref().unwrap().contains("active") {
-                let msg = MessageChain::new()
-                    .build_target(&group_num)
-                    .build_text("小A 开始活跃了！");
-                SENDER.clone().get().unwrap().send(msg).await.unwrap();
-                let is_mute = Arc::clone(&IS_MUTE);
-                is_mute.store(false, Ordering::Release);
-                return;
-            }
-
-            let is_mute = Arc::clone(&IS_MUTE);
-            if is_mute.load(Ordering::Acquire) {
-                return;
-            }
-
-            if message_chain[1].text.as_ref().unwrap().contains("mute") {
-                let msg = MessageChain::new()
-                    .build_target(&group_num)
-                    .build_text("小A 已沉默");
-                let res = SENDER
-                    .clone()
-                    .get()
-                    .unwrap()
-                    .send(msg)
-                    .await
-                    .is_ok_and(|_| {
+            match message_chain.len() {
+                2 => {
+                    if message_chain[1].text.as_ref().unwrap().contains("active") {
+                        let msg = MessageChain::new()
+                            .build_target(&group_num)
+                            .build_text("小A 开始活跃了！");
+                        SENDER.clone().get().unwrap().send(msg).await.unwrap();
                         let is_mute = Arc::clone(&IS_MUTE);
-                        is_mute.store(true, Ordering::Release);
-                        true
-                    });
-                if res {
-                    println!("成功沉默小A！");
-                }
-                return;
-            }
-            if message_chain[1]
-                .text
-                .as_ref()
-                .unwrap()
-                .contains("#poweroff")
-            {
-                let ans = MessageChain::new()
-                    .build_target(&group_num)
-                    .build_text("已关机");
-                let res = SENDER
-                    .clone()
-                    .get()
-                    .unwrap()
-                    .send(ans)
-                    .await
-                    .is_ok_and(|_| {
-                        tokio::task::spawn(async {
-                            sleep(Duration::from_secs(1));
-                            println!("已关机");
+                        is_mute.store(false, Ordering::Release);
+                        return;
+                    }
+
+                    let is_mute = Arc::clone(&IS_MUTE);
+                    if is_mute.load(Ordering::Acquire) {
+                        return;
+                    }
+
+                    if message_chain[1].text.as_ref().unwrap().contains("mute") {
+                        let msg = MessageChain::new()
+                            .build_target(&group_num)
+                            .build_text("小A 已沉默");
+                        let res = SENDER
+                            .clone()
+                            .get()
+                            .unwrap()
+                            .send(msg)
+                            .await
+                            .is_ok_and(|_| {
+                                let is_mute = Arc::clone(&IS_MUTE);
+                                is_mute.store(true, Ordering::Release);
+                                true
+                            });
+                        if res {
+                            println!("成功沉默小A！");
+                        }
+                        return;
+                    }
+                    if message_chain[1]
+                        .text
+                        .as_ref()
+                        .unwrap()
+                        .contains("#poweroff")
+                    {
+                        let ans = MessageChain::new()
+                            .build_target(&group_num)
+                            .build_text("已关机");
+                        let res = SENDER
+                            .clone()
+                            .get()
+                            .unwrap()
+                            .send(ans)
+                            .await
+                            .is_ok_and(|_| {
+                                tokio::task::spawn(async {
+                                    sleep(Duration::from_secs(1));
+                                    println!("已关机");
+                                    std::process::exit(0);
+                                });
+                                true
+                            });
+                        if !res {
+                            println!("关机消息发送失败！！");
                             std::process::exit(0);
-                        });
-                        true
-                    });
-                if !res {
-                    println!("关机消息发送失败！！");
-                    std::process::exit(0);
-                    // return;
+                            // return;
+                        }
+                        return;
+                    }
+
+                    if message_chain[1].text.as_ref().unwrap().contains("summary") {
+                        tokio::task::spawn(Self::summary_instruction(
+                            group_num.clone(),
+                            sender.clone(),
+                        ));
+                        return;
+                    }
+                    if message_chain[1].text.as_ref().unwrap().contains("animes") {
+                        tokio::task::spawn(Self::bilibili_instruction(sender.clone()));
+                        return;
+                    }
+                    if message_chain[1]
+                        .text
+                        .as_ref()
+                        .unwrap()
+                        .contains("recommendations")
+                    {
+                        tokio::task::spawn(Self::bilibili_recommendations(sender.clone()));
+                        return;
+                    }
+                    if message_chain[1].text.as_ref().unwrap().contains("magnet:?") {
+                        let ans = MessageChain::new()
+                            .build_target(&group_num)
+                            .build_text("磁力链？");
+                        SENDER.clone().get().unwrap().send(ans).await.unwrap();
+                        //     let index = message_chain[1]
+                        //         .text
+                        //         .as_ref()
+                        //         .unwrap()
+                        //         .find("magnet:?")
+                        //         .unwrap_or_default();
+                        //     let magic_str = &message_chain[1].text.as_ref().unwrap()[index..];
+                        //     tokio::task::spawn(Self::magic_instruction(
+                        //         magic_str.to_string(),
+                        //         sender.clone(),
+                        //     ));
+                        return;
+                    }
+
+                    if message_chain[1].text.as_ref().unwrap().contains("screen") {
+                        let msg = message_chain[1].text.as_ref().unwrap();
+                        let index = msg.find("http").unwrap();
+                        let url = msg[index..].to_string();
+                        println!("{}", url);
+                        tokio::spawn(Self::get_screenshot(url, sender.clone()));
+                        return;
+                    }
+
+                    tokio::task::spawn(Self::ai_chat(message_chain.clone(), sender.clone()));
+                    return;
                 }
-                return;
+                3 => {
+                    if message_chain[1].text.as_ref().unwrap().contains("get_text")
+                        && message_chain[2]._type.eq("Image")
+                    {
+                        let silce = get_ocr_text(message_chain[2].url.as_ref().unwrap()).await;
+                        let text = format!("{:?}", silce);
+                        let msg = MessageChain::new()
+                            .build_target(&group_num)
+                            .build_at(sender.get_id())
+                            .build_text(&text);
+                        SENDER.clone().get().unwrap().send(msg).await.unwrap();
+                        return;
+                    }
+                }
+                _ => {}
             }
-
-            if message_chain[1].text.as_ref().unwrap().contains("summary") {
-                tokio::task::spawn(Self::summary_instruction(group_num.clone(), sender.clone()));
-                return;
-            }
-            if message_chain[1].text.as_ref().unwrap().contains("animes") {
-                tokio::task::spawn(Self::bilibili_instruction(sender.clone()));
-                return;
-            }
-            if message_chain[1]
-                .text
-                .as_ref()
-                .unwrap()
-                .contains("recommendations")
-            {
-                tokio::task::spawn(Self::bilibili_recommendations(sender.clone()));
-                return;
-            }
-            if message_chain[1].text.as_ref().unwrap().contains("magnet:?") {
-                let ans = MessageChain::new()
-                    .build_target(&group_num)
-                    .build_text("磁力链？");
-                SENDER.clone().get().unwrap().send(ans).await.unwrap();
-                //     let index = message_chain[1]
-                //         .text
-                //         .as_ref()
-                //         .unwrap()
-                //         .find("magnet:?")
-                //         .unwrap_or_default();
-                //     let magic_str = &message_chain[1].text.as_ref().unwrap()[index..];
-                //     tokio::task::spawn(Self::magic_instruction(
-                //         magic_str.to_string(),
-                //         sender.clone(),
-                //     ));
-                return;
-            }
-
-            if message_chain[1].text.as_ref().unwrap().contains("screen") {
-                let msg = message_chain[1].text.as_ref().unwrap();
-                let index = msg.find("http").unwrap();
-                let url = msg[index..].to_string();
-                println!("{}", url);
-                tokio::spawn(Self::get_screenshot(url, sender.clone()));
-                return;
-            }
-
-            tokio::task::spawn(Self::ai_chat(message_chain.clone(), sender.clone()));
-            return;
         }
 
         // 用于偷听的记录
