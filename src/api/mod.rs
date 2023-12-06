@@ -6,3 +6,4 @@ pub mod magic;
 pub mod tian_song;
 pub mod web_utils;
 pub mod wx_chat;
+pub mod baidu_api;
