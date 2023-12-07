@@ -186,6 +186,21 @@ impl EventHandler for MyBot {
                     if message_chain[1].text.as_ref().unwrap().contains("get_text")
                         && message_chain[2]._type.eq("Image")
                     {
+                        tokio::task::spawn(async move {
+                            let silce = get_ocr_text(message_chain[2].url.as_ref().unwrap()).await;
+                            let text = format!("{:?}", silce);
+                            let msg = MessageChain::new()
+                                .build_target(&group_num)
+                                .build_at(sender.get_id())
+                                .build_text(&text);
+                            SENDER.clone().get().unwrap().send(msg).await.unwrap();
+                        });
+                        return;
+                    }
+
+                    if message_chain[1].text.as_ref().unwrap().contains("comment")
+                        && message_chain[2]._type.eq("Image")
+                    {
                         let silce = get_ocr_text(message_chain[2].url.as_ref().unwrap()).await;
                         let text = format!("{:?}", silce);
                         let msg = MessageChain::new()

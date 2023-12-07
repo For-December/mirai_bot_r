@@ -51,12 +51,19 @@ fn get_url() -> String {
     })();
     database_url.expect("请配置DATABASE_URL")
 }
+// SELECT id,group_id,asker_id,replier_id,ask_text, answer,create_time,update_time FROM ask_answer AS t1
+// JOIN
+// (SELECT ROUND(RAND()*(SELECT MAX(id) FROM ask_answer)) AS new_id) AS t2
+// WHERE group_id = 721150143 AND LEVENSHTEIN('好好好',ask_text) < 2 AND t1.id >= t2.new_id ORDER BY t1.id LIMIT 1
 pub async fn get_nearest_answer(ask: &str, group_id: &str) -> Option<Vec<Message>> {
     // 原来之前的报错是返回值类型不匹配啊，没有解包
     let res: AskAnswer = sqlx::query_as!(
             AskAnswer,// LEVENSHTEIN
-             "SELECT id,group_id,asker_id,replier_id,ask_text, answer,create_time,update_time FROM ask_answer WHERE LEVENSHTEIN(?,ask_text) < 2 AND group_id = ? ORDER BY RAND() LIMIT 1", // ascending&descending
-             ask,group_id)
+             "SELECT id,group_id,asker_id,replier_id,ask_text, answer,create_time,update_time FROM ask_answer AS t1 
+             JOIN
+             (SELECT ROUND(RAND()*(SELECT MAX(id) FROM ask_answer)) AS new_id) AS t2 
+             WHERE group_id = ? AND LEVENSHTEIN(?,ask_text) < 2 AND t1.id >= t2.new_id ORDER BY t1.id LIMIT 1", // ascending&descending
+             group_id,ask)
     .fetch_one(MYSQL_POOL.force().await)
     .await
     .unwrap_or_default();
