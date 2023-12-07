@@ -82,7 +82,7 @@ pub async fn get_nearest_answer(ask: &str, group_id: &str) -> Option<Vec<Message
     // 计时
     let elapsed_time = start_time.elapsed();
     info!(
-        "group_id = {} min_len= {} max_len = {} ask_text = {} edit_distance = {}",
+        "group_id = {}\nmin_len= {} max_len = {}\nask_text = {} edit_distance = {}",
         group_id, min_len, max_len, ask, edit_distance
     );
 
