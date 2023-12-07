@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use crate::bot::message::Message;
 use async_lazy::Lazy;
 use chrono::Local;
@@ -58,9 +60,11 @@ fn get_url() -> String {
 // AND LEVENSHTEIN('好好好',ask_text) < 3
 // ORDER BY RAND() LIMIT 1;
 pub async fn get_nearest_answer(ask: &str, group_id: &str) -> Option<Vec<Message>> {
-    let edit_distance = (ask.len() * 3 / 10).to_string();
+    let edit_distance = (utf8_slice::len(ask) * 3 / 10).to_string();
     let min_len = (ask.len() * 7 / 10).to_string();
     let max_len = (ask.len() * 13 / 10).to_string(); // 都是向下取整
+
+    let start_time = Instant::now(); // 计时
 
     // 原来之前的报错是返回值类型不匹配啊，没有解包
     let res: AskAnswer = sqlx::query_as!(
@@ -75,12 +79,19 @@ pub async fn get_nearest_answer(ask: &str, group_id: &str) -> Option<Vec<Message
     .fetch_one(MYSQL_POOL.force().await)
     .await
     .unwrap_or_default();
+    // 计时
+    let elapsed_time = start_time.elapsed();
+    info!(
+        "group_id = {} min_len= {} max_len = {} ask_text = {} edit_distance = {}",
+        group_id, min_len, max_len, ask, edit_distance
+    );
 
     // res:
     match res.answer {
         Some(answer) => {
             let res: Vec<Message> =
                 serde_json::from_value(answer).unwrap_or_else(|_| panic!("解析messageChain失败"));
+            info!("用时：{} s", elapsed_time.as_millis() as f64 / 1000.0);
             return Some(res);
         }
         None => {

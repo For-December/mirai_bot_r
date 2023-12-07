@@ -12,21 +12,24 @@ use super::{api_utils, bot_trait::BotAction, message::MessageChain, my_bot::MyBo
 impl BotAction for MyBot {
     async fn recall_last_group_msg(&'static self, subject: String) {
         let last_msg = LAST_MSG.clone().lock().unwrap().pop();
-        match last_msg {
-            Some(message_id) => {
-                let json = json!({
-                        "target": subject,
-                        "messageId": message_id,
-                })
-                .to_string();
-                api_utils::post_msg(json, "/recall", &self.session_key)
-                    .await
-                    .unwrap();
+        // 及时释放锁
+        tokio::task::spawn(async move {
+            match last_msg {
+                Some(message_id) => {
+                    let json = json!({
+                            "target": subject,
+                            "messageId": message_id,
+                    })
+                    .to_string();
+                    api_utils::post_msg(json, "/recall", &self.session_key)
+                        .await
+                        .unwrap();
+                }
+                None => {
+                    println!("无消息可撤回");
+                }
             }
-            None => {
-                println!("无消息可撤回");
-            }
-        }
+        });
     }
     async fn send_group_msg(&'static self, msg: &MessageChain) -> Result<String, String> {
         let group_num = msg
