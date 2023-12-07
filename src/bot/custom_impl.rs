@@ -1,5 +1,6 @@
 use std::{
     collections::HashMap,
+    f32::consts::E,
     process::exit,
     sync::{Arc, Mutex, RwLock},
     thread::sleep,
@@ -7,6 +8,7 @@ use std::{
 };
 
 use lazy_static::lazy_static;
+use log::{info, warn};
 use rand::{thread_rng, Rng};
 use regex::Regex;
 use serde_json::Value;
@@ -542,6 +544,7 @@ pub async fn try_answer(ask: Vec<Message>, group_num: String) {
     if thread_rng().gen_range(0..10) < 6 || !group_num.eq(APP_CONF.bot_group.as_str()) {
         return;
     }
+    info!("随机决定回复，开始查表");
     for ele in ask {
         match ele._type.as_str() {
             // "Plain" | "Image" => (),
@@ -551,7 +554,7 @@ pub async fn try_answer(ask: Vec<Message>, group_num: String) {
                 }
                 match get_nearest_answer(ele.text.as_ref().unwrap(), group_num.as_str()).await {
                     Some(answer) => {
-                        println!("搜到答案，尝试回复！");
+                        info!("搜到答案，尝试回复！");
                         println!("ask_text = {}", ele.text.as_ref().unwrap());
                         let mut ans = Vec::new();
                         for ele in answer {
@@ -560,6 +563,7 @@ pub async fn try_answer(ask: Vec<Message>, group_num: String) {
                             }
                             ans.push(ele);
                         }
+                        println!("answer={:?}", ans);
                         SENDER
                             .clone()
                             .get()
@@ -568,12 +572,14 @@ pub async fn try_answer(ask: Vec<Message>, group_num: String) {
                             .await
                             .unwrap();
                     }
-                    None => println!("未找到Plain"),
+                    None => warn!("未找到Plain"),
                 }
             }
             "Image" => {
                 match get_nearest_answer(ele.image_id.as_ref().unwrap(), group_num.as_str()).await {
                     Some(answer) => {
+                        info!("搜到答案，尝试回复！");
+                        println!("ask_img={}", ele.image_id.as_ref().unwrap());
                         let mut ans = Vec::new();
                         for ele in answer {
                             if ele._type.contains("At") {
@@ -581,7 +587,7 @@ pub async fn try_answer(ask: Vec<Message>, group_num: String) {
                             }
                             ans.push(ele);
                         }
-                        println!("搜到答案，尝试回复！");
+                        println!("answer={:?}", ans);
                         SENDER
                             .clone()
                             .get()
@@ -590,7 +596,7 @@ pub async fn try_answer(ask: Vec<Message>, group_num: String) {
                             .await
                             .unwrap();
                     }
-                    None => println!("未找到Image"),
+                    None => warn!("未找到Image"),
                 }
             }
             _ => (),

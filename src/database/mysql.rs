@@ -123,7 +123,7 @@ pub async fn set_ask_answer(
     .expect("添加失败！");
     // });
     info!(
-        "数据添加成功!$$$\n--group:{}\n--ask:{}\n--answer:{}\n$$$$$$$$$\n",
+        "数据添加成功!\n$$$$$$$$$\n--group:{}\n--ask:{}\n--answer:{}\n$$$$$$$$$\n",
         group_id, ask, answer
     );
 }
