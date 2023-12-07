@@ -82,16 +82,16 @@ pub async fn get_nearest_answer(ask: &str, group_id: &str) -> Option<Vec<Message
     // 计时
     let elapsed_time = start_time.elapsed();
     info!(
-        "group_id = {}\nmin_len= {} max_len = {}\nask_text = {} edit_distance = {}",
+        "详情信息=>\n- group_id = {}\n- min_len= {} max_len = {}\n- ask_text = {}\n- edit_distance = {}\n",
         group_id, min_len, max_len, ask, edit_distance
     );
-
+    info!("用时：{} s", elapsed_time.as_millis() as f64 / 1000.0);
     // res:
     match res.answer {
         Some(answer) => {
             let res: Vec<Message> =
                 serde_json::from_value(answer).unwrap_or_else(|_| panic!("解析messageChain失败"));
-            info!("用时：{} s", elapsed_time.as_millis() as f64 / 1000.0);
+
             return Some(res);
         }
         None => {
