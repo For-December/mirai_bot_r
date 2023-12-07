@@ -10,8 +10,9 @@ pub trait EventHandler {
 
 #[async_trait]
 pub trait BotAction {
-    async fn send_group_msg(&'static self, msg: &MessageChain);
+    async fn send_group_msg(&'static self, msg: &MessageChain) -> Result<String, String>;
     async fn send_group_nudge(&'static self, subject: String, target: String);
+    async fn recall_last_group_msg(&'static self, subject: String);
 }
 
 #[async_trait]

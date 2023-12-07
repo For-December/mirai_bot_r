@@ -18,7 +18,7 @@ use serde_json::Value;
 use std::{
     sync::{
         atomic::{AtomicBool, Ordering},
-        Arc,
+        Arc, Mutex,
     },
     thread::{self, sleep},
     time::Duration,
@@ -72,6 +72,11 @@ impl EventHandler for MyBot {
                         SENDER.clone().get().unwrap().send(msg).await.unwrap();
                         let is_mute = Arc::clone(&IS_MUTE);
                         is_mute.store(false, Ordering::Release);
+                        return;
+                    }
+
+                    if message_chain[1].text.as_ref().unwrap().contains("#recall") {
+                        self.recall_last_group_msg(group_num).await;
                         return;
                     }
 

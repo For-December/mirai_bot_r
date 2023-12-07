@@ -22,6 +22,7 @@ lazy_static! {
     pub static ref MY_BOT: OnceLock<MyBot> = OnceLock::new();
     pub static ref IS_MUTE: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
     pub static ref SENDER: OnceLock<Sender<MessageChain>> = OnceLock::new();
+    pub static ref LAST_MSG: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
 }
 
 // impl AI for MyBot {}
@@ -35,7 +36,14 @@ pub async fn run() -> Result<(), Box<dyn std::error::Error>> {
     tokio::spawn(async move {
         while let Some(message_chain) = receiver.recv().await {
             // println!("{:#?}", message_chain);
-            MY_BOT.get().unwrap().send_group_msg(&message_chain).await;
+            match MY_BOT.get().unwrap().send_group_msg(&message_chain).await {
+                Ok(message_id) => {
+                    LAST_MSG.clone().lock().unwrap().push(message_id); // 添加上一条消息id
+                }
+                Err(err) => {
+                    println!("{}", err)
+                }
+            }
         }
     });
 

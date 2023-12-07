@@ -4,11 +4,31 @@ use async_trait::async_trait;
 use regex::Regex;
 use serde_json::{json, to_value, Value};
 
-use super::{bot_trait::BotAction, message::MessageChain, my_bot::MyBot};
+use crate::LAST_MSG;
+
+use super::{api_utils, bot_trait::BotAction, message::MessageChain, my_bot::MyBot};
 
 #[async_trait]
 impl BotAction for MyBot {
-    async fn send_group_msg(&'static self, msg: &MessageChain) {
+    async fn recall_last_group_msg(&'static self, subject: String) {
+        let last_msg = LAST_MSG.clone().lock().unwrap().pop();
+        match last_msg {
+            Some(message_id) => {
+                let json = json!({
+                        "target": subject,
+                        "messageId": message_id,
+                })
+                .to_string();
+                api_utils::post_msg(json, "/recall", &self.session_key)
+                    .await
+                    .unwrap();
+            }
+            None => {
+                println!("无消息可撤回");
+            }
+        }
+    }
+    async fn send_group_msg(&'static self, msg: &MessageChain) -> Result<String, String> {
         let group_num = msg
             .group_num
             .as_ref()
@@ -33,10 +53,10 @@ impl BotAction for MyBot {
         match super::api_utils::post_msg(json, "/sendGroupMessage", &self.session_key).await {
             Ok(msg) => {
                 println!("send msg success: {}", msg);
+                let msg: Value = serde_json::from_str(&msg).unwrap();
+                Ok(msg["messageId"].to_string())
             }
-            Err(err) => {
-                println!("send group msg error: {}", err);
-            }
+            Err(err) => Err(format!("send group msg error: {}", err)),
         }
     }
 
