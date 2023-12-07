@@ -23,7 +23,7 @@ impl BotAction for MyBot {
             "messageChain": message_chain
         })
         .to_string();
-        let pattern = Regex::new(r#""base64":"\s+""#).unwrap();
+        let pattern = Regex::new(r#""base64":"\S+""#).unwrap();
         println!(
             "sendToGroup: {}",
             pattern.replace(&json, r#""base64":"编码后的数据""#)
