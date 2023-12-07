@@ -1,5 +1,4 @@
 use base64::{engine::general_purpose, Engine};
-use regex::Regex;
 use reqwest::StatusCode;
 use serde_json::Value;
 
@@ -25,8 +24,6 @@ pub async fn post_msg(json: String, api_path: &str, session_key: &str) -> Result
             let resp_json: Value = serde_json::from_str(&res).unwrap();
             let code = resp_json["code"].to_string();
             println!("code {}", code);
-            let pattern = Regex::new(r#""base64":"\s+""#).unwrap();
-            println!("{}", pattern.replace(&res, r#""base64":"编码后的数据""#));
             if code.is_empty() || code.eq("0") {
                 Ok(res)
             } else {

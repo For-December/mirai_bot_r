@@ -1,6 +1,7 @@
 use std::process;
 
 use async_trait::async_trait;
+use regex::Regex;
 use serde_json::{json, to_value, Value};
 
 use super::{bot_trait::BotAction, message::MessageChain, my_bot::MyBot};
@@ -22,7 +23,12 @@ impl BotAction for MyBot {
             "messageChain": message_chain
         })
         .to_string();
-        println!("{}", json);
+        let pattern = Regex::new(r#""base64":"\s+""#).unwrap();
+        println!(
+            "sendToGroup: {}",
+            pattern.replace(&json, r#""base64":"编码后的数据""#)
+        );
+        // println!("{}", json);
 
         match super::api_utils::post_msg(json, "/sendGroupMessage", &self.session_key).await {
             Ok(msg) => {
