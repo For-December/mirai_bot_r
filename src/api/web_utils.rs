@@ -28,7 +28,7 @@ pub async fn post_utils<'a>(api_param: ApiParam<'a>) -> Result<String, String> {
     let query = api_param.query;
     let json = api_param.json;
     let form = api_param.form;
-    match reqwest::Client::builder()
+    let mut builder = reqwest::Client::builder()
         .no_proxy() // 取消系统代理
         // .redirect(reqwest::redirect::Policy::none())
         .build()
@@ -36,11 +36,14 @@ pub async fn post_utils<'a>(api_param: ApiParam<'a>) -> Result<String, String> {
         .post(url)
         .query(&query)
         .body(json.clone())
-        .headers(header_map.clone())
-        .form(&form)
-        .send()
-        .await
-    {
+        .headers(header_map.clone()); // 注意，content type会被form修改
+
+    // 仅当设置了 form 参数时，才生效
+    if !form.is_empty() {
+        builder = builder.form(&form);
+    }
+
+    match builder.send().await {
         Ok(res) => match res.status() {
             StatusCode::OK => {
                 let res = res.text().await.unwrap();
