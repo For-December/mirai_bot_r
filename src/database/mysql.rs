@@ -57,7 +57,7 @@ fn get_url() -> String {
 // WHERE group_id = 721150143
 // AND LENGTH(ask_text) > 9
 // AND LENGTH(ask_text) < 18
-// AND LEVENSHTEIN('好好好',ask_text) < 3
+// AND LEVENSHTEIN('好好好',ask_text) <= 3
 // ORDER BY RAND() LIMIT 1;
 pub async fn get_nearest_answer(ask: &str, group_id: &str) -> Option<Vec<Message>> {
     let edit_distance = (utf8_slice::len(ask) * 3 / 10).to_string();
@@ -73,7 +73,7 @@ pub async fn get_nearest_answer(ask: &str, group_id: &str) -> Option<Vec<Message
              WHERE group_id = ? 
              AND LENGTH(ask_text) > ? 
              AND LENGTH(ask_text) < ? 
-             AND LEVENSHTEIN(?,ask_text) < ? 
+             AND LEVENSHTEIN(?,ask_text) <= ? 
              ORDER BY RAND() LIMIT 1;", // ascending&descending
              group_id,min_len,max_len,ask,edit_distance)
     .fetch_one(MYSQL_POOL.force().await)
