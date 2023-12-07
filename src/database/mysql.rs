@@ -51,19 +51,27 @@ fn get_url() -> String {
     })();
     database_url.expect("请配置DATABASE_URL")
 }
-// SELECT id,group_id,asker_id,replier_id,ask_text, answer,create_time,update_time FROM ask_answer AS t1
-// JOIN
-// (SELECT ROUND(RAND()*(SELECT MAX(id) FROM ask_answer)) AS new_id) AS t2
-// WHERE group_id = 721150143 AND LEVENSHTEIN('好好好',ask_text) < 2 AND t1.id >= t2.new_id ORDER BY t1.id LIMIT 1
+// SELECT id,group_id,asker_id,replier_id,ask_text, answer,create_time,update_time FROM ask_answer
+// WHERE group_id = 721150143
+// AND LENGTH(ask_text) > 9
+// AND LENGTH(ask_text) < 18
+// AND LEVENSHTEIN('好好好',ask_text) < 3
+// ORDER BY RAND() LIMIT 1;
 pub async fn get_nearest_answer(ask: &str, group_id: &str) -> Option<Vec<Message>> {
+    let edit_distance = (ask.len() * 3 / 10).to_string();
+    let min_len = (ask.len() * 7 / 10).to_string();
+    let max_len = (ask.len() * 13 / 10).to_string(); // 都是向下取整
+
     // 原来之前的报错是返回值类型不匹配啊，没有解包
     let res: AskAnswer = sqlx::query_as!(
             AskAnswer,// LEVENSHTEIN
-             "SELECT id,group_id,asker_id,replier_id,ask_text, answer,create_time,update_time FROM ask_answer AS t1 
-             JOIN
-             (SELECT ROUND(RAND()*(SELECT MAX(id) FROM ask_answer)) AS new_id) AS t2 
-             WHERE group_id = ? AND LEVENSHTEIN(?,ask_text) < 2 AND t1.id >= t2.new_id ORDER BY t1.id LIMIT 1", // ascending&descending
-             group_id,ask)
+             "SELECT id,group_id,asker_id,replier_id,ask_text, answer,create_time,update_time FROM ask_answer 
+             WHERE group_id = ? 
+             AND LENGTH(ask_text) > ? 
+             AND LENGTH(ask_text) < ? 
+             AND LEVENSHTEIN(?,ask_text) < ? 
+             ORDER BY RAND() LIMIT 1;", // ascending&descending
+             group_id,min_len,max_len,ask,edit_distance)
     .fetch_one(MYSQL_POOL.force().await)
     .await
     .unwrap_or_default();
