@@ -6,19 +6,17 @@ use super::{
     my_bot::MyBot,
     summary_msg::accumulate_msg,
 };
-use crate::{
-    api::baidu_ocr::{self, get_ocr_text},
-    SENDER,
-};
+use crate::{api::baidu_ocr::get_ocr_text, SENDER};
 use async_trait::async_trait;
 // use rand::{thread_rng, Rng};
 
 use lazy_static::lazy_static;
 use serde_json::Value;
 use std::{
+    collections::HashMap,
     sync::{
         atomic::{AtomicBool, Ordering},
-        Arc, Mutex,
+        Arc, Mutex, RwLock,
     },
     thread::{self, sleep},
     time::Duration,
@@ -26,6 +24,7 @@ use std::{
 
 lazy_static! {
     static ref IS_MUTE: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
+    static ref BAN_MAP: Arc<RwLock<HashMap<String, bool>>> = Arc::new(RwLock::new(HashMap::new()));
 }
 
 #[async_trait]
@@ -76,6 +75,43 @@ impl EventHandler for MyBot {
                     }
 
                     if message_chain[1].text.as_ref().unwrap().contains("#recall") {
+                        let is_bannd: bool;
+                        {
+                            // 如果用户被ban则直接结束
+                            let ban_rw = Arc::clone(&BAN_MAP); // 引用计数器++
+                            let ban_r = ban_rw.read().unwrap();
+
+                            is_bannd = match ban_r.get(&sender.get_id()) {
+                                Some(is_banned) => is_banned.clone(),
+                                None => false,
+                            };
+                        } // 读锁在这里释放
+
+                        if is_bannd {
+                            let msg = MessageChain::new()
+                                .build_target(&group_num.clone())
+                                .build_text("别急，你的撤回还在冷却中...");
+                            SENDER.clone().get().unwrap().send(msg).await.unwrap();
+                            return;
+                        }
+
+                        {
+                            // 设置ban状态
+                            let ban_rw = Arc::clone(&BAN_MAP); // 引用计数器++
+                            let mut ban_w = ban_rw.write().unwrap();
+                            ban_w.insert(sender.get_id(), true);
+                        } // 写锁在这里释放
+
+                        tokio::task::spawn(async move {
+                            // 一分钟后设为false
+                            sleep(Duration::from_millis(1));
+                            {
+                                let ban_rw = Arc::clone(&BAN_MAP);
+                                let mut ban_w = ban_rw.write().unwrap();
+                                ban_w.insert(sender.get_id(), false);
+                            }
+                        });
+
                         self.recall_last_group_msg(group_num).await;
                         return;
                     }
