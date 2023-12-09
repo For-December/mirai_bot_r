@@ -16,7 +16,7 @@ use std::{
     collections::HashMap,
     sync::{
         atomic::{AtomicBool, Ordering},
-        Arc, Mutex, RwLock,
+        Arc, RwLock,
     },
     thread::{self, sleep},
     time::Duration,
@@ -104,7 +104,7 @@ impl EventHandler for MyBot {
 
                         tokio::task::spawn(async move {
                             // 一分钟后设为false
-                            sleep(Duration::from_millis(1));
+                            sleep(Duration::from_secs(30));
                             {
                                 let ban_rw = Arc::clone(&BAN_MAP);
                                 let mut ban_w = ban_rw.write().unwrap();
