@@ -149,7 +149,7 @@ impl EventHandler for MyBot {
                     {
                         let ans = MessageChain::new()
                             .build_target(&group_num)
-                            .build_text("已关机");
+                            .build_text("111，真关吗哥? ");
                         let res = SENDER
                             .clone()
                             .get()
@@ -160,7 +160,7 @@ impl EventHandler for MyBot {
                                 tokio::task::spawn(async {
                                     sleep(Duration::from_secs(1));
                                     println!("已关机");
-                                    std::process::exit(0);
+                                    // std::process::exit(0);
                                 });
                                 true
                             });
