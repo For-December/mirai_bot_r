@@ -55,6 +55,7 @@ pub async fn get_msg(
 
     Ok(res)
 }
+
 pub async fn get_bytes_with_body(url: &str, body: String) -> Result<String, String> {
     // println!("{}", APP_CONF.base_url.clone() + api_path);
     let req_builder = reqwest::Client::builder()

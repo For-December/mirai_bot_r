@@ -3,9 +3,15 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use crate::{
+    bot::{api_utils, my_bot::MyBot},
+    MY_BOT,
+};
+
 use super::{group::GroupSender, message::Message};
 use lazy_static::lazy_static;
 use log::info;
+use serde_json::Value;
 lazy_static! {
     static ref CONVERSATIONS: Arc<Mutex<HashMap<String, VecDeque<String>>>> =
         Arc::new(Mutex::new(HashMap::new()));
@@ -16,16 +22,37 @@ pub async fn accumulate_msg(message_chain: Vec<Message>, sender: GroupSender) {
     data.push_str(": ");
     for ele in message_chain {
         let msg = match ele._type.as_str() {
-            "At" => ele
-                .display
-                .unwrap_or_default()
-                .trim_matches('@')
-                .to_string(),
+            "At" => {
+                let member_info = api_utils::get_msg(
+                    vec![
+                        ("target", sender.get_group().id.to_string().as_str()),
+                        ("memberId", ele.target.unwrap().to_string().as_str()),
+                    ]
+                    .into_iter()
+                    .collect(),
+                    "/memberInfo",
+                    &MY_BOT.get().unwrap().session_key,
+                )
+                .await
+                .unwrap();
+                let member_info: Value = serde_json::from_str(&member_info).unwrap();
+                let name = member_info["memberName"].to_string();
+
+                let at_name = ele
+                    .display
+                    .unwrap_or(String::from("前面那位用户，"))
+                    .to_string();
+                if at_name.is_empty() {
+                    format!("`@{}`, ", name.trim_matches('\"'))
+                } else {
+                    at_name
+                }
+            }
             "Plain" => ele.text.unwrap_or_default().to_string(),
             "Image" => String::from("[图片]"),
             _ => String::new(),
         };
-        if utf8_slice::len(&msg) > 100 {
+        if utf8_slice::len(&msg) > 200 {
             continue;
         }
         data.push_str(&msg);
