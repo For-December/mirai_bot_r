@@ -375,7 +375,7 @@ impl MyBot {
 
         let ans = MyBot::process_text(
             &sender.get_member_name(),
-            (sender.get_member_name() + message_chain[1].text.as_ref().unwrap().as_str()).as_str(),
+            message_chain[1].text.as_ref().unwrap().as_str(), // sender.get_member_name()+...
         )
         .await
         .replace("\\n", "\n")

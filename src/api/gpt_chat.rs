@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use log::info;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
@@ -140,7 +141,7 @@ pub trait AI {
             let mut file = File::create("output.json").expect("Unable to create file");
             file.write_all(json_string.as_bytes())
                 .expect("Unable to write to file");
-            println!("历史记录已写入文件\n");
+            info!("历史记录已写入文件\n");
 
             return true;
         }
