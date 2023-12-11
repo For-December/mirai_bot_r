@@ -4,7 +4,7 @@ use std::{
 };
 
 use crate::{
-    bot::{api_utils, my_bot::MyBot},
+    bot::api_utils,
     MY_BOT,
 };
 

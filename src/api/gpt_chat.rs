@@ -6,6 +6,7 @@ use crate::setup::conf::APP_CONF;
 use std::{
     collections::HashMap,
     fs::File,
+    io::Write,
     process,
     sync::{Arc, Mutex, RwLock},
     vec,
@@ -130,7 +131,17 @@ pub trait AI {
             let content = Arc::clone(&AI_CONTEXT);
             let resp = content.read().unwrap();
             // .send_message(ask).await.unwrap();
-            println!("历史记录\n{:#?}", resp);
+
+            // 将结构转换为JSON字符串
+            let mut map = HashMap::new();
+            resp.clone_into(&mut map);
+            let json_string = serde_json::to_string(&map).unwrap();
+            // 写入文件
+            let mut file = File::create("output.json").expect("Unable to create file");
+            file.write_all(json_string.as_bytes())
+                .expect("Unable to write to file");
+            println!("历史记录已写入文件\n");
+
             return true;
         }
         return false;
@@ -153,6 +164,7 @@ pub trait AI {
         let pre = pre.trim_matches(' ');
 
         return if let Ok(conv) = read_conversation(format!("data/{}.json", pre).as_str()) {
+            clear_context(user_name);
             add_context(user_name, conv);
             0
         } else {

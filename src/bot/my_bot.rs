@@ -35,6 +35,7 @@ impl MyBot {
         let res: Value = serde_json::from_str(&res)?;
         let data_arr: Option<Vec<Value>> = serde_json::from_value(res["data"].clone())?;
         if data_arr.is_none() {
+            println!("{}", res);
             return Ok(None);
         }
 
