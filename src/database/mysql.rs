@@ -59,6 +59,20 @@ fn get_url() -> String {
 // AND LENGTH(ask_text) < 18
 // AND LEVENSHTEIN('好好好',ask_text) <= 3
 // ORDER BY RAND() LIMIT 1;
+
+// 进一步优化：
+
+// SELECT id,group_id,asker_id,replier_id,ask_text, answer,create_time,update_time
+// FROM
+// (SELECT id,group_id,asker_id,replier_id,ask_text, answer,create_time,update_time FROM ask_answer
+// WHERE group_id = 721150143
+// AND LENGTH(ask_text) > 14
+// AND LENGTH(ask_text) < 27
+// AND ask_text LIKE '%说%了%跟%没%说%一%样%'
+// LIMIT 200)
+// AS t2
+// WHERE LEVENSHTEIN('说了跟没说一样',ask_text) <= 2;
+// ORDER BY RAND() LIMIT 1;
 pub async fn get_nearest_answer(ask: &str, group_id: &str) -> Option<Vec<Message>> {
     let edit_distance = (utf8_slice::len(ask) * 3 / 10).to_string();
     let min_len = (ask.len() * 7 / 10).to_string();
@@ -66,24 +80,36 @@ pub async fn get_nearest_answer(ask: &str, group_id: &str) -> Option<Vec<Message
 
     let start_time = Instant::now(); // 计时
 
+    let len = utf8_slice::len(ask);
+    let mut like_str = String::from("%");
+    for i in 0..len {
+        like_str.push_str(utf8_slice::slice(ask, i, i + 1)); // 前闭后开
+        like_str.push('%');
+    }
+
     // 原来之前的报错是返回值类型不匹配啊，没有解包
     let res: AskAnswer = sqlx::query_as!(
             AskAnswer,// LEVENSHTEIN
-             "SELECT id,group_id,asker_id,replier_id,ask_text, answer,create_time,update_time FROM ask_answer 
+             "SELECT id,group_id,asker_id,replier_id,ask_text, answer,create_time,update_time 
+             FROM 
+             (SELECT id,group_id,asker_id,replier_id,ask_text, answer,create_time,update_time FROM ask_answer 
              WHERE group_id = ? 
              AND LENGTH(ask_text) > ? 
              AND LENGTH(ask_text) < ? 
-             AND LEVENSHTEIN(?,ask_text) <= ? 
+             AND ask_text LIKE ? 
+             LIMIT 200) 
+             AS t2 
+             WHERE LEVENSHTEIN(?,ask_text) <= ? 
              ORDER BY RAND() LIMIT 1;", // ascending&descending
-             group_id,min_len,max_len,ask,edit_distance)
+             group_id,min_len,max_len,like_str,ask,edit_distance)
     .fetch_one(MYSQL_POOL.force().await)
     .await
     .unwrap_or_default();
     // 计时
     let elapsed_time = start_time.elapsed();
     info!(
-        "详情信息=>\n- group_id = {}\n- min_len= {} max_len = {}\n- ask_text = {}\n- edit_distance = {}\n",
-        group_id, min_len, max_len, ask, edit_distance
+        "详情信息=>\n- group_id = {}\n- min_len= {} max_len = {}\n- ask_text = {}\n- like_ask = {}\n- edit_distance = {}\n",
+        group_id, min_len, max_len, like_str, ask, edit_distance
     );
     info!("用时：{} s", elapsed_time.as_millis() as f64 / 1000.0);
     // res:

@@ -6,11 +6,12 @@ use super::{
     my_bot::MyBot,
     summary_msg::accumulate_msg,
 };
-use crate::{api::baidu_ocr::get_ocr_text, SENDER};
+use crate::{api::baidu_ocr::get_ocr_text, setup::conf::APP_CONF, SENDER};
 use async_trait::async_trait;
 // use rand::{thread_rng, Rng};
 
 use lazy_static::lazy_static;
+use rand::{thread_rng, Rng};
 use serde_json::Value;
 use std::{
     collections::HashMap,
@@ -35,7 +36,7 @@ impl EventHandler for MyBot {
         //     .build_text("测试123");
         // SENDER.clone().get().unwrap().send(m).await.unwrap();
 
-        thread::sleep(Duration::from_secs(1));
+        // thread::sleep(Duration::from_secs(1));
         let temp_chain = message_chain.get_message_chain();
         let mut message_chain: Vec<Message> = Vec::new();
         for ele in temp_chain {
@@ -261,6 +262,10 @@ impl EventHandler for MyBot {
 
         let is_mute = Arc::clone(&IS_MUTE);
         if is_mute.load(Ordering::Acquire) {
+            return;
+        }
+
+        if thread_rng().gen_range(0..10) < 6 || !group_num.eq(APP_CONF.bot_group.as_str()) {
             return;
         }
         tokio::task::spawn(try_answer(

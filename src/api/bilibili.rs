@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use log::{info, warn};
 use regex::Regex;
 use serde_json::Value;
 
@@ -89,12 +90,14 @@ pub async fn get_info(text: &str) -> Result<BVInfo, String> {
         return Ok(get_bv_info(get_bv(text)?).await);
     }
     if text.contains("b23.tv/") {
+        info!("尝试获取bv");
         // 间接获取bv
-        let re = Regex::new(r"(https://b23.tv/\S+)\?|$").unwrap();
+        let re = Regex::new(r"(https://b23\.tv/\S+?)(?:\?|$)").unwrap();
         if let Some(captures) = re.captures(&text) {
             let url = captures.get(1).map_or("", |m| m.as_str());
             // 如果是None则返回""，否则转变为&str并返回
             if url.is_empty() {
+                warn!("未成功匹配到链接");
                 return Err(String::from("未找到合适的链接"));
             }
 

@@ -178,8 +178,8 @@ impl MyBot {
                 return false;
             }
         };
-        let url = text.trim_matches('\"');
-        let re = Regex::new(r"(https://\S+)\?|$").unwrap(); // 匹配问号或字符串结尾
+        let url = text.trim_matches('\"'); // (https://b23\.tv/\S+?)(?:\?|$)
+        let re = Regex::new(r"(https://\S+?)(?:\?|$)").unwrap(); // 匹配问号或字符串结尾
         if let Some(captures) = re.captures(&url) {
             let url = captures.get(1).map_or("", |m| m.as_str());
             // 如果是None则返回""，否则转变为&str并返回
@@ -541,10 +541,7 @@ pub async fn get_ask(
 }
 
 pub async fn try_answer(ask: Vec<Message>, group_num: String) {
-    if thread_rng().gen_range(0..10) < 6 || !group_num.eq(APP_CONF.bot_group.as_str()) {
-        return;
-    }
-    info!("随机决定回复，开始查表");
+    info!("随机决定回复，准备查表...");
     for ele in ask {
         match ele._type.as_str() {
             // "Plain" | "Image" => (),
