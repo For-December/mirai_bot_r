@@ -329,6 +329,7 @@ impl MyBot {
     pub async fn ai_chat(message_chain: Vec<Message>, sender: GroupSender) -> bool {
         if MyBot::debug(
             &sender.get_member_name(),
+            &sender.get_id(),
             message_chain[1].text.as_ref().unwrap().as_str(),
         )
         .await

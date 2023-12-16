@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use log::info;
+use log::{info, warn};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
@@ -127,15 +127,17 @@ fn clear_context(user_name: &str) {
 
 #[async_trait]
 pub trait AI {
-    async fn debug(_user_name: &str, ask: &str) -> bool {
+    async fn debug(user_name: &str, user_id: &str, ask: &str) -> bool {
         if ask.contains("#debug") {
-            let content = Arc::clone(&AI_CONTEXT);
-            let resp = content.read().unwrap();
-            // .send_message(ask).await.unwrap();
-
-            // 将结构转换为JSON字符串
             let mut map = HashMap::new();
-            resp.clone_into(&mut map);
+            {
+                let content = Arc::clone(&AI_CONTEXT);
+                let resp = content.read().unwrap();
+                // .send_message(ask).await.unwrap();
+
+                // 将结构转换为JSON字符串
+                resp.clone_into(&mut map);
+            } // 这里读锁释放
             let json_string = serde_json::to_string(&map).unwrap();
             // 写入文件
             let mut file = File::create("output.json").expect("Unable to create file");
@@ -145,6 +147,50 @@ pub trait AI {
 
             return true;
         }
+
+        if ask.contains("#export") {
+            let con_vec;
+            // .send_message(ask).await.unwrap();
+            {
+                let content = Arc::clone(&AI_CONTEXT);
+                let resp = content.read().unwrap();
+                con_vec = match resp.get(user_name) {
+                    Some(conversations) => {
+                        let conversations = Arc::clone(conversations);
+                        let conversations = conversations.lock().unwrap();
+                        conversations[1..].to_vec().clone()
+                    }
+                    None => {
+                        warn!("用户 {} 没有历史记录可导出\n", user_name);
+                        return false;
+                    }
+                }
+            } // 这里锁释放
+
+            let json_string = serde_json::to_string(&con_vec).unwrap();
+            // 写入文件
+            let mut file =
+                File::create(format!("history/{}.json", user_id)).expect("Unable to create file");
+            file.write_all(json_string.as_bytes())
+                .expect("Unable to write to file");
+            info!("用户 {} 的历史记录已写入文件\n", user_name);
+
+            return true;
+        }
+
+        if ask.contains("#history") {
+            return if let Ok(conv) = read_conversation(format!("history/{}.json", user_id).as_str())
+            {
+                clear_context(user_name);
+                add_context(user_name, conv);
+                info!("用户 {} 的历史记录已导入~", user_name);
+                true
+            } else {
+                warn!("用户 {} 无历史记录可导入~", user_name);
+                false
+            };
+        }
+
         return false;
     }
     async fn forget(user_name: &str, ask: &str) -> bool {
