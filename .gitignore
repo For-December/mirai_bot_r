@@ -1,5 +1,5 @@
 /target
 config.yaml
 .env
-output.json
+/*.json
 history/*
