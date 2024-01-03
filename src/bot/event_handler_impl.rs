@@ -11,6 +11,7 @@ use async_trait::async_trait;
 // use rand::{thread_rng, Rng};
 
 use lazy_static::lazy_static;
+use log::info;
 use rand::{thread_rng, Rng};
 use serde_json::Value;
 use std::{
@@ -24,7 +25,8 @@ use std::{
 };
 
 lazy_static! {
-    static ref IS_MUTE: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
+    // static ref IS_MUTE: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
+    static ref MUTE_MAP: Arc<RwLock<HashMap<String, bool>>> = Arc::new(RwLock::new(HashMap::new()));
     static ref BAN_MAP: Arc<RwLock<HashMap<String, bool>>> = Arc::new(RwLock::new(HashMap::new()));
 }
 
@@ -65,13 +67,40 @@ impl EventHandler for MyBot {
         {
             match message_chain.len() {
                 2 => {
-                    if message_chain[1].text.as_ref().unwrap().contains("active") {
+                    if message_chain[1].text.as_ref().unwrap().contains("status") {
+                        let is_mute: bool;
+                        {
+                            let mute_r = MUTE_MAP.read().unwrap();
+                            is_mute = match mute_r.get(&group_num) {
+                                Some(is_mute) => *is_mute,
+                                None => false,
+                            };
+                        }
+                        let text = match is_mute {
+                            true => "status: mute",
+                            false => "status: active",
+                        };
                         let msg = MessageChain::new()
                             .build_target(&group_num)
-                            .build_text("小A 开始活跃了！");
+                            .build_text(text);
                         SENDER.clone().get().unwrap().send(msg).await.unwrap();
-                        let is_mute = Arc::clone(&IS_MUTE);
-                        is_mute.store(false, Ordering::Release);
+                        return;
+                    }
+
+                    if message_chain[1].text.as_ref().unwrap().contains("active") {
+                        {
+                            let msg = MessageChain::new()
+                                .build_target(&group_num)
+                                .build_text("小A 开始活跃了！");
+                            SENDER.clone().get().unwrap().send(msg).await.unwrap();
+                        }
+                        // let is_mute = Arc::clone(&IS_MUTE);
+                        // is_mute.store(false, Ordering::Release);
+                        {
+                            // unmute
+                            let mut mute_w = MUTE_MAP.write().unwrap();
+                            mute_w.insert(group_num.clone(), false);
+                        }
                         return;
                     }
 
@@ -104,8 +133,8 @@ impl EventHandler for MyBot {
                         } // 写锁在这里释放
 
                         tokio::task::spawn(async move {
-                            // 一分钟后设为false
-                            sleep(Duration::from_secs(30));
+                            // 15s后设为false
+                            sleep(Duration::from_secs(15));
                             {
                                 let ban_rw = Arc::clone(&BAN_MAP);
                                 let mut ban_w = ban_rw.write().unwrap();
@@ -117,10 +146,28 @@ impl EventHandler for MyBot {
                         return;
                     }
 
-                    let is_mute = Arc::clone(&IS_MUTE);
-                    if is_mute.load(Ordering::Acquire) {
+                    let is_mute: bool;
+                    {
+                        let mute_r = MUTE_MAP.read().unwrap();
+                        is_mute = match mute_r.get(&group_num) {
+                            Some(is_mute) => *is_mute,
+                            None => false,
+                        };
+                    }
+                    info!("status: {}", is_mute);
+                    if is_mute {
+                        // 该群被mute了，提醒群友
+                        let ans = MessageChain::new()
+                            .build_target(&group_num)
+                            .build_text("请先解除mute~");
+                        SENDER.clone().get().unwrap().send(ans).await.unwrap();
                         return;
                     }
+
+                    // let is_mute = Arc::clone(&IS_MUTE);
+                    // if is_mute.load(Ordering::Acquire) {
+                    // return;
+                    // }
 
                     if message_chain[1].text.as_ref().unwrap().contains("mute") {
                         let msg = MessageChain::new()
@@ -133,8 +180,12 @@ impl EventHandler for MyBot {
                             .send(msg)
                             .await
                             .is_ok_and(|_| {
-                                let is_mute = Arc::clone(&IS_MUTE);
-                                is_mute.store(true, Ordering::Release);
+                                // let is_mute = Arc::clone(&IS_MUTE);
+                                // is_mute.store(true, Ordering::Release);
+                                {
+                                    let mut mute_w = MUTE_MAP.write().unwrap();
+                                    mute_w.insert(group_num.clone(), true);
+                                }
                                 true
                             });
                         if res {
@@ -260,10 +311,22 @@ impl EventHandler for MyBot {
         // 用于偷听的记录
         tokio::task::spawn(Self::chat_listen(message_chain.clone(), sender.clone()));
 
-        let is_mute = Arc::clone(&IS_MUTE);
-        if is_mute.load(Ordering::Acquire) {
-            return;
+        {
+            let mute_r = MUTE_MAP.read().unwrap();
+            match mute_r.get(&group_num) {
+                Some(is_mute) => {
+                    if *is_mute {
+                        // 该群被mute了
+                        return;
+                    }
+                }
+                None => {}
+            }
         }
+        // let is_mute = Arc::clone(&IS_MUTE);
+        // if is_mute.load(Ordering::Acquire) {
+        //     return;
+        // }
 
         if thread_rng().gen_range(0..10) < 6 || !group_num.eq(APP_CONF.bot_group.as_str()) {
             return;

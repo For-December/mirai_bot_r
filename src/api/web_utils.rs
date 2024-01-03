@@ -1,6 +1,5 @@
 use std::{collections::HashMap, process, str::FromStr};
 
-use image::codecs::qoi;
 use regex::Regex;
 use reqwest::{
     header::{HeaderMap, HeaderName, HeaderValue},
