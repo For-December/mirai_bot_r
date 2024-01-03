@@ -1,6 +1,5 @@
 use std::{
     collections::HashMap,
-    f32::consts::E,
     process::exit,
     sync::{Arc, Mutex, RwLock},
     thread::sleep,
@@ -16,13 +15,12 @@ use std::process;
 
 use crate::{
     api::{
-        bilibili::{get_bv_info, get_info, get_latest_anime, get_rcmd, get_video_summary},
+        bilibili::{get_info, get_latest_anime, get_rcmd, get_video_summary},
         gpt_chat::AI,
         magic::get_preview,
     },
     bot::{message::MessageChain, summary_msg::summary},
     database::mysql::{get_nearest_answer, set_ask_answer},
-    setup::conf::APP_CONF,
     SENDER,
 };
 

@@ -19,7 +19,7 @@ use std::{
         atomic::{AtomicBool, Ordering},
         Arc, RwLock,
     },
-    thread::{self, sleep},
+    thread::sleep,
     time::Duration,
 };
 
