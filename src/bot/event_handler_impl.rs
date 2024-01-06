@@ -135,7 +135,7 @@ impl EventHandler for MyBot {
 
                         tokio::task::spawn(async move {
                             // 15s后设为false
-                            sleep(Duration::from_secs(15));
+                            sleep(Duration::from_secs(5));
                             {
                                 let ban_rw = Arc::clone(&BAN_MAP);
                                 let mut ban_w = ban_rw.write().unwrap();
@@ -329,7 +329,7 @@ impl EventHandler for MyBot {
         //     return;
         // }
 
-        if thread_rng().gen_range(0..10) < 6 || !group_num.eq(APP_CONF.bot_group.as_str()) {
+        if thread_rng().gen_range(0..10) < 6 || !APP_CONF.bot_group.contains(&group_num) {
             return;
         }
         tokio::task::spawn(try_answer(

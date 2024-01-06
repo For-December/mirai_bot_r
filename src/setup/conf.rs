@@ -7,7 +7,7 @@ pub struct AppConfig {
     pub base_url: String,
     pub verify_key: String,
     pub bot_qq: String,
-    pub bot_group: String,
+    pub bot_group: Vec<String>,
     pub wx_api: WXApi,
     pub baidu_ocr: BaiduOCR,
     pub gpt_api: GPTApi,
