@@ -120,7 +120,8 @@ impl EventHandler for MyBot {
                         if is_bannd {
                             let msg = MessageChain::new()
                                 .build_target(&group_num.clone())
-                                .build_text("别急，你的撤回还在冷却中...");
+                                .build_type("unrecord")
+                                .build_text("别急，你的撤回还在冷却中（此消息不记录）...");
                             SENDER.clone().get().unwrap().send(msg).await.unwrap();
                             return;
                         }

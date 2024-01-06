@@ -69,7 +69,7 @@ pub async fn accumulate_msg(message_chain: Vec<Message>, sender: GroupSender) {
         .get_mut(group_num.as_str())
         .expect("获取map对应值出错");
 
-    while cons.len() >= 50 {
+    while cons.len() >= 150 {
         cons.pop_front();
     }
     cons.push_back(data);

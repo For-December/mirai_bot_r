@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use regex::Regex;
 use serde_json::{json, to_value, Value};
 
-use crate::LAST_MSG;
+use crate::{LAST_MSG, SENDER};
 
 use super::{api_utils, bot_trait::BotAction, message::MessageChain, my_bot::MyBot};
 
@@ -27,6 +27,10 @@ impl BotAction for MyBot {
                 }
                 None => {
                     println!("无消息可撤回");
+                    let msg = MessageChain::new()
+                        .build_target(&subject)
+                        .build_text("无消息可撤回");
+                    SENDER.clone().get().unwrap().send(msg).await.unwrap();
                 }
             }
         });

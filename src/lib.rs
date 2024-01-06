@@ -11,6 +11,7 @@ mod setup;
 use bot::event::*;
 use bot::my_bot::*;
 use lazy_static::lazy_static;
+use log::info;
 use tokio::sync::mpsc;
 use tokio::sync::mpsc::Receiver;
 use tokio::sync::mpsc::Sender;
@@ -41,7 +42,12 @@ pub async fn run() -> Result<(), Box<dyn std::error::Error>> {
             // println!("{:#?}", message_chain);
             match MY_BOT.get().unwrap().send_group_msg(&message_chain).await {
                 Ok(message_id) => {
-                    LAST_MSG.clone().lock().unwrap().push(message_id); // 添加上一条消息id
+                    match message_chain._type {
+                        Some(_type) => {
+                            info!("不记录该消息！：{}", _type)
+                        }
+                        None => LAST_MSG.clone().lock().unwrap().push(message_id), // 添加上一条消息id
+                    }
                 }
                 Err(err) => {
                     println!("{}", err)

@@ -12,6 +12,7 @@ enum MessageType {
 #[derive(Debug, Clone)]
 pub struct MessageChain {
     pub group_num: Option<String>,
+    pub _type: Option<String>,
     message_chain: Vec<Message>,
 }
 
@@ -21,15 +22,22 @@ impl MessageChain {
         let message_chain: Vec<Message> = Vec::new();
         return MessageChain {
             group_num: None,
+            _type: None,
             message_chain,
         };
     }
     pub fn from(group_num: Option<String>, message_chain: Vec<Message>) -> MessageChain {
         return MessageChain {
             group_num,
+            _type: None,
             message_chain,
         };
     }
+    pub fn build_type(mut self, _type: &str) -> Self {
+        self._type = Some(String::from(_type));
+        self
+    }
+
     pub fn build_target(mut self, group_num: &str) -> Self {
         self.group_num = Some(String::from(group_num));
         self
